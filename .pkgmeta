@@ -1,0 +1,12 @@
+package-as: RCDiabloOrbs
+
+ignore:
+  - README.md
+  - CHANGELOG.md
+  - .github
+  - .pkgmeta
+  - .gitignore
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown

@@ -1,0 +1,1611 @@
+﻿<Ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.blizzard.com/wow/ui/">
+	<Script file="RCDiabloOrbs.lua" />
+	<Frame name="RC32GUI" parent="UIParent" movable="true" hidden="true" enableMouse="true">
+		<Size>
+			<AbsDimension x="400" y="525" />
+		</Size>
+		<Anchors>
+			<Anchor point="TOP">
+				<Offset x="0" y="100" />
+			</Anchor>
+		</Anchors>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture name="RC32GUIBackground" file="Interface\AddOns\RCDiabloOrbs\images\CHICKEN_backdrop.tga">
+					<Anchors>
+						<Anchor point="TOPLEFT" />
+						<Anchor point="BOTTOMRIGHT" />
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="BORDER">
+				<Texture name="RC32GUIBorder" file="Interface\AddOns\RCDiabloOrbs\images\flame_border.tga">
+					<Anchors>
+						<Anchor point="TOPLEFT">
+							<Offset x="-55" y="105" />
+						</Anchor>
+						<Anchor point="BOTTOMRIGHT">
+							<Offset x="45" y="-95" />
+						</Anchor>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="OVERLAY">
+				<FontString name="FontString1" inherits="NumberFontNormalHuge" font="Interface\addons\RCDiabloOrbs\fonts\Of Wildflowers and Wings.ttf" text="RC Diablo Orbs" justifyV="TOP">
+					<Size>
+						<AbsDimension x="262" y="57" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOP">
+							<Offset x="0" y="-15" />
+						</Anchor>
+					</Anchors>
+					<FontHeight>
+						<AbsValue val="42" />
+					</FontHeight>
+					<Color r="1" g="0" b="0" />
+				</FontString>
+				<FontString name="FontString1" font="Interface\addons\RCDiabloOrbs\fonts\Of Wildflowers and Wings.ttf" text="Orb Configuration Utility" justifyV="TOP">
+					<Size>
+						<AbsDimension x="194" y="39" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOP">
+							<Offset x="0" y="-52" />
+						</Anchor>
+					</Anchors>
+					<FontHeight>
+						<AbsValue val="24" />
+					</FontHeight>
+					<Color r="1" g="0.5" b="0.5" />
+				</FontString>
+				<FontString parentKey="text" name="$parentText" inherits="GameFontNormalSmall">
+					<Anchors>
+						<Anchor point="LEFT" relativePoint="RIGHT">
+							<Offset x="-317" y="209" />
+						</Anchor>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Button name="HealthOrbButton">
+				<Size>
+					<AbsDimension x="85" y="27" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="-85" y="150" />
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer>
+						<FontString parentKey="text" inherits="BossEmoteNormalHuge" setAllPoints="true" font="Interface\addons\RCDiabloOrbs\fonts\Of Wildflowers and Wings.ttf" text="Health Orb" justifyV="TOP">
+							<Anchors>
+								<Anchor point="CENTER">
+									<Offset x="0" y="0" />
+								</Anchor>
+							</Anchors>
+							<FontHeight>
+								<AbsValue val="26" />
+							</FontHeight>
+							<Color r="1" g="0.5" b="0.5" />
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad>
+						HealthOrbButton:RegisterForClicks("LeftButtonUp")
+						HealthOrbButton.defaultTextColor = {r=1, g=0.5, b=0.5, a = 1}
+					</OnLoad>
+					<OnEnter>
+						local r,g,b,a = HealthOrbButton.text:GetTextColor()
+						HealthOrbButton.text:SetTextColor(1,1,1,a)
+					</OnEnter>
+					<OnLeave>
+						local r,g,b,a = HealthOrbButton.defaultTextColor.r,HealthOrbButton.defaultTextColor.g,HealthOrbButton.defaultTextColor.b,HealthOrbButton.defaultTextColor.a
+						HealthOrbButton.text:SetTextColor(r,g,b,a)
+					</OnLeave>
+					<OnMouseDown>
+						local r,g,b,a = HealthOrbButton.text:GetTextColor()
+						HealthOrbButton.text:SetTextColor(r,g,b,a)
+					</OnMouseDown>
+					<OnMouseUp>
+						local r,g,b,a = HealthOrbButton.text:GetTextColor()
+						HealthOrbButton.text:SetTextColor(r,g,b,a)
+					</OnMouseUp>
+					<OnClick>
+						if RC32ConfigFrame:IsVisible() then
+							if RC32ConfigFrame.text:GetText() == HealthOrbButton.text:GetText() then
+								RC32ConfigFrame:Hide()
+								HealthOrbOptionsDropDown:Hide()
+							else
+								CommitButton.orb = healthOrb
+								CommitButton.orbData = RC32CharacterData.healthOrb
+								CommitButton.textureElement = RC32CharacterData.healthOrb.textures
+								CommitButton.activeElement = RC32CharacterData.healthOrb
+								resetXMLTextBoxes()
+								checkXMLOrbFontPlacement()
+								UpdateXMLTextures(healthOrb)
+								UpdateXMLColors(RC32CharacterData.healthOrb.orbColor,RC32CharacterData.healthOrb.galaxy,RC32CharacterData.healthOrb.font1,RC32CharacterData.healthOrb.font2)
+								UpdateXMLText(healthOrb)
+								ManaOrbOptionsDropDown:Hide()
+								HealthOrbOptionsDropDown:Show()
+								RC32ConfigFrame.text:SetText(HealthOrbButton.text:GetText())
+								RC32ConfigFrame.text:SetTextColor(HealthOrbButton.defaultTextColor.r,HealthOrbButton.defaultTextColor.g,HealthOrbButton.defaultTextColor.b,HealthOrbButton.defaultTextColor.a)
+								--set the selected value appropriately
+								local index = 1
+								if CommitButton.orbData.formatting.truncated then
+									index = 1
+								elseif CommitButton.orbData.formatting.commaSeparated then
+									index = 2
+								else
+									index = 3
+								end
+
+								UIDropDownMenu_SetSelectedID(TextFormattingDropdown, index)
+							end
+						else
+							CommitButton.orb = healthOrb
+							CommitButton.orbData = RC32CharacterData.healthOrb
+							CommitButton.textureElement = RC32CharacterData.healthOrb.textures
+							CommitButton.activeElement = RC32CharacterData.healthOrb
+							resetXMLTextBoxes()
+							checkXMLOrbFontPlacement()
+							UpdateXMLTextures(healthOrb)
+							UpdateXMLColors(RC32CharacterData.healthOrb.orbColor,RC32CharacterData.healthOrb.galaxy,RC32CharacterData.healthOrb.font1,RC32CharacterData.healthOrb.font2)
+							UpdateXMLText(healthOrb)
+							RC32ConfigFrame.text:SetText(HealthOrbButton.text:GetText())
+							RC32ConfigFrame.text:SetTextColor(HealthOrbButton.defaultTextColor.r,HealthOrbButton.defaultTextColor.g,HealthOrbButton.defaultTextColor.b,HealthOrbButton.defaultTextColor.a)
+							RC32ConfigFrame:Show()
+							ManaOrbOptionsDropDown:Hide()
+							HealthOrbOptionsDropDown:Show()
+						end
+					</OnClick>
+				</Scripts>
+			</Button>
+			<Button name="ManaOrbButton">
+				<Size>
+					<AbsDimension x="93" y="27" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="72" y="150" />
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer>
+						<FontString parentKey="text" inherits="BossEmoteNormalHuge" setAllPoints="true" font="Interface\addons\RCDiabloOrbs\fonts\Of Wildflowers and Wings.ttf" text="Mana Orb" justifyV="TOP">
+							<Anchors>
+								<Anchor point="CENTER">
+									<Offset x="0" y="0" />
+								</Anchor>
+							</Anchors>
+							<FontHeight>
+								<AbsValue val="26" />
+							</FontHeight>
+							<Color r="0" g="1" b="1" />
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad>
+						ManaOrbButton:RegisterForClicks("LeftButtonUp")
+						ManaOrbButton.defaultTextColor = {r=0, g=1, b=1, a=1}
+					</OnLoad>
+					<OnEnter>
+						local r,g,b,a = ManaOrbButton.text:GetTextColor()
+						ManaOrbButton.text:SetTextColor(1,1,1,a)
+					</OnEnter>
+					<OnLeave>
+						local r,g,b,a = ManaOrbButton.defaultTextColor.r,ManaOrbButton.defaultTextColor.g,ManaOrbButton.defaultTextColor.b,ManaOrbButton.defaultTextColor.a
+						ManaOrbButton.text:SetTextColor(r,g,b,a)
+					</OnLeave>
+					<OnMouseDown>
+						local r,g,b,a = ManaOrbButton.text:GetTextColor()
+						ManaOrbButton.text:SetTextColor(r,g,b,a)
+					</OnMouseDown>
+					<OnMouseUp>
+						local r,g,b,a = ManaOrbButton.text:GetTextColor()
+						ManaOrbButton.text:SetTextColor(r,g,b,a)
+					</OnMouseUp>
+					<OnClick>
+						if RC32ConfigFrame:IsVisible() then
+							if RC32ConfigFrame.text:GetText() == ManaOrbButton.text:GetText() then
+								RC32ConfigFrame:Hide()
+								ManaOrbOptionsDropDown:Hide()
+							else
+								CommitButton.orb = manaOrb
+								CommitButton.orbData = RC32CharacterData.manaOrb
+								CommitButton.textureElement = RC32CharacterData.manaOrb.textures
+								CommitButton.activeElement = RC32CharacterData.manaOrb
+								resetXMLTextBoxes()
+								checkXMLOrbFontPlacement()
+								UpdateXMLTextures(manaOrb)
+								UpdateXMLColors(RC32CharacterData.manaOrb.orbColor,RC32CharacterData.manaOrb.galaxy,RC32CharacterData.manaOrb.font1,RC32CharacterData.manaOrb.font2)
+								UpdateXMLText(manaOrb)
+								RC32ConfigFrame.text:SetText(ManaOrbButton.text:GetText())
+								RC32ConfigFrame.text:SetTextColor(ManaOrbButton.defaultTextColor.r,ManaOrbButton.defaultTextColor.g,ManaOrbButton.defaultTextColor.b,ManaOrbButton.defaultTextColor.a)
+								HealthOrbOptionsDropDown:Hide()
+								ManaOrbOptionsDropDown:Show()
+								--set the selected value appropriately
+								local index = 1
+								if CommitButton.orbData.formatting.truncated then
+									index = 1
+								elseif CommitButton.orbData.formatting.commaSeparated then
+									index = 2
+								else
+									index = 3
+								end
+
+								UIDropDownMenu_SetSelectedID(TextFormattingDropdown, index)
+							end
+						else
+							CommitButton.orb = manaOrb
+							CommitButton.orbData = RC32CharacterData.manaOrb
+							CommitButton.textureElement = RC32CharacterData.manaOrb.textures
+							CommitButton.activeElement = RC32CharacterData.manaOrb
+							resetXMLTextBoxes()
+							checkXMLOrbFontPlacement()
+							UpdateXMLTextures(manaOrb)
+							UpdateXMLColors(RC32CharacterData.manaOrb.orbColor,RC32CharacterData.manaOrb.galaxy,RC32CharacterData.manaOrb.font1,RC32CharacterData.manaOrb.font2)
+							UpdateXMLText(manaOrb)
+							RC32ConfigFrame.text:SetText(ManaOrbButton.text:GetText())
+							RC32ConfigFrame.text:SetTextColor(ManaOrbButton.defaultTextColor.r,ManaOrbButton.defaultTextColor.g,ManaOrbButton.defaultTextColor.b,ManaOrbButton.defaultTextColor.a)
+							RC32ConfigFrame:Show()
+							HealthOrbOptionsDropDown:Hide()
+							ManaOrbOptionsDropDown:Show()
+						end
+					</OnClick>
+				</Scripts>
+			</Button>
+			<Button name="CloseButton" inherits="UIPanelButtonTemplate" text="Close">
+				<Size>
+					<AbsDimension x="75" y="23" />
+				</Size>
+				<Anchors>
+					<Anchor point="BOTTOM">
+						<Offset x="120" y="10" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnMouseUp>
+						Handle_RC32GUI()
+					</OnMouseUp>
+				</Scripts>
+			</Button>
+			<Button name="RC32InfoButton" inherits="UIPanelButtonTemplate" text="Info">
+				<Size>
+					<AbsDimension x="75" y="23" />
+				</Size>
+				<Anchors>
+					<Anchor point="BOTTOM">
+						<Offset x="-120" y="10" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnMouseUp>
+						RC32_ShowWelcomePopup()
+					</OnMouseUp>
+				</Scripts>
+			</Button>
+			<Button name="RC32BattleRezButton" inherits="UIPanelButtonTemplate" text="Battle Rez">
+				<Size>
+					<AbsDimension x="75" y="23" />
+				</Size>
+				<Anchors>
+					<Anchor point="BOTTOM">
+						<Offset x="-40" y="10" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnMouseUp>
+						if RC32_ToggleBattleRezOptions then RC32_ToggleBattleRezOptions() end
+					</OnMouseUp>
+				</Scripts>
+			</Button>
+			<Button name="RC32ProfilesButton" inherits="UIPanelButtonTemplate" text="Profiles">
+				<Size>
+					<AbsDimension x="75" y="23" />
+				</Size>
+				<Anchors>
+					<Anchor point="BOTTOM">
+						<Offset x="40" y="10" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnMouseUp>
+						if RC32_ToggleProfilesMenu then RC32_ToggleProfilesMenu() end
+					</OnMouseUp>
+				</Scripts>
+			</Button>
+			<CheckButton name="TrackCombatCheckButton" inherits="UICheckButtonTemplate" checked="true">
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset x="26" y="-357" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						if TrackCombatCheckButton:GetChecked() then
+							RC32CharacterData.combat.enabled = true
+							RC32UpdateOrbColor(healthOrb,RC32CharacterData.combat.orbColor,RC32CharacterData.combat.galaxy, RC32CharacterData.combat.font1,RC32CharacterData.combat.font2)
+						else
+							RC32CharacterData.combat.enabled = false
+							RC32UpdateOrbColor(healthOrb,RC32CharacterData.healthOrb.orbColor,RC32CharacterData.healthOrb.galaxy, RC32CharacterData.healthOrb.font1,RC32CharacterData.healthOrb.font2)
+						end
+					</OnClick>
+				</Scripts>
+				<ButtonText text="Track Combat" justifyH="LEFT">
+					<Anchors>
+						<Anchor x="30" y="0" point="LEFT" />
+					</Anchors>
+				</ButtonText>
+				<NormalFont style="FocusFontSmall" />
+			</CheckButton>
+			<CheckButton name="ShowArtworkCheckButton" inherits="UICheckButtonTemplate" checked="true">
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset x="26" y="-319" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						if ShowArtworkCheckButton:GetChecked() then
+							RC32CharacterData.artwork.show = true
+							-- Only show artwork for visible orbs
+							if RC32CharacterData.healthOrb.show then
+								demonFrame:Show()
+							end
+							if RC32CharacterData.manaOrb.show then
+								angelFrame:Show()
+							end
+						else
+							angelFrame:Hide()
+							demonFrame:Hide()
+							RC32CharacterData.artwork.show = false
+						end
+					</OnClick>
+				</Scripts>
+				<ButtonText text="Show Artwork" justifyH="LEFT">
+					<Anchors>
+						<Anchor x="30" y="0" point="LEFT" />
+					</Anchors>
+				</ButtonText>
+				<NormalFont style="FocusFontSmall" />
+			</CheckButton>
+			<CheckButton name="ShowHealthOrbCheckButton" inherits="UICheckButtonTemplate" checked="true">
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="-85" y="125" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						RC32_ToggleHealthOrb(ShowHealthOrbCheckButton:GetChecked())
+					</OnClick>
+				</Scripts>
+				<ButtonText text="" justifyH="LEFT">
+					<Anchors>
+						<Anchor x="30" y="0" point="LEFT" />
+					</Anchors>
+				</ButtonText>
+				<NormalFont style="FocusFontSmall" />
+			</CheckButton>
+			<CheckButton name="ShowManaOrbCheckButton" inherits="UICheckButtonTemplate" checked="true">
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="72" y="125" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						RC32_ToggleManaOrb(ShowManaOrbCheckButton:GetChecked())
+					</OnClick>
+				</Scripts>
+				<ButtonText text="" justifyH="LEFT">
+					<Anchors>
+						<Anchor x="30" y="0" point="LEFT" />
+					</Anchors>
+				</ButtonText>
+				<NormalFont style="FocusFontSmall" />
+			</CheckButton>
+			<CheckButton name="ShowBlizzPlayerFrameCheckButton" inherits="UICheckButtonTemplate" checked="false">
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset x="26" y="-395 "/>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						if ShowBlizzPlayerFrameCheckButton:GetChecked() then
+							RC32CharacterData.defaultPlayerFrame.show = true
+						else
+							RC32CharacterData.defaultPlayerFrame.show = false
+						end
+						ReloadUI()
+					</OnClick>
+				</Scripts>
+				<ButtonText text="Show Player Frame" justifyH="LEFT">
+					<Anchors>
+						<Anchor x="30" y="0" point="LEFT" />
+					</Anchors>
+				</ButtonText>
+				<NormalFont style="FocusFontSmall"/>
+			</CheckButton>
+			<CheckButton name="AnimateOrbValuesCheckButton" inherits="UICheckButtonTemplate" checked="true">
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset x="26" y="-281" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						if AnimateOrbValuesCheckButton:GetChecked() then
+							RC32CharacterData.smoothing = true
+						else
+							RC32CharacterData.smoothing = false
+						end
+					</OnClick>
+				</Scripts>
+				<ButtonText text="Smooth Animate" justifyH="LEFT">
+					<Anchors>
+						<Anchor x="30" y="0" point="LEFT" />
+					</Anchors>
+				</ButtonText>
+				<NormalFont style="FocusFontSmall" />
+			</CheckButton>
+			<CheckButton name="UsePetOrbCheckButton" inherits="UICheckButtonTemplate" checked="true">
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset x="200" y="-281" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						if UsePetOrbCheckButton:GetChecked() then
+							RegisterUnitWatch(petOrb)
+							RC32CharacterData.petOrb.enabled = true
+						else
+							UnregisterUnitWatch(petOrb)
+							petOrb:Hide()
+							RC32CharacterData.petOrb.enabled = false
+						end
+					</OnClick>
+				</Scripts>
+				<ButtonText text="Use Pet Orb" justifyH="LEFT">
+					<Anchors>
+						<Anchor x="30" y="0" point="LEFT" />
+					</Anchors>
+				</ButtonText>
+				<NormalFont style="FocusFontSmall" />
+			</CheckButton>
+			<CheckButton name="ShowPetOrbValuesCheckButton" inherits="UICheckButtonTemplate" checked="true">
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset x="200" y="-319" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						if ShowPetOrbValuesCheckButton:GetChecked() then
+							petOrb.font3:Show()
+							petOrb.font4:Show()
+							RC32CharacterData.petOrb.showValue = true
+							checkPetFontPlacement()
+						else
+							petOrb.font3:Hide()
+							petOrb.font4:Hide()
+							RC32CharacterData.petOrb.showValue = False
+							checkPetFontPlacement()
+						end
+					</OnClick>
+				</Scripts>
+				<ButtonText text="Show Pet Values" justifyH="LEFT">
+					<Anchors>
+						<Anchor x="30" y="0" point="LEFT" />
+					</Anchors>
+				</ButtonText>
+				<NormalFont style="FocusFontSmall" />
+			</CheckButton>
+			<CheckButton name="ShowPetOrbPercentagesCheckButton" inherits="UICheckButtonTemplate" checked="true">
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset x="200" y="-357" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						if ShowPetOrbPercentagesCheckButton:GetChecked() then
+							petOrb.font1:Show()
+							petOrb.font2:Show()
+							RC32CharacterData.petOrb.showPercentage = true
+							checkPetFontPlacement()
+						else
+							petOrb.font1:Hide()
+							petOrb.font2:Hide()
+							RC32CharacterData.petOrb.showPercentage = False
+							checkPetFontPlacement()
+						end
+					</OnClick>
+				</Scripts>
+				<ButtonText text="Show Pet Percentage" justifyH="LEFT">
+					<Anchors>
+						<Anchor x="30" y="0" point="LEFT" />
+					</Anchors>
+				</ButtonText>
+				<NormalFont style="FocusFontSmall" />
+			</CheckButton>
+			<CheckButton name="UsePowerTrackerCheckButton" inherits="UICheckButtonTemplate" checked="true">
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset x="200" y="-395" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						-- Visibility is handled in Lua after segmentedPowerTracker is created
+					</OnLoad>
+					<OnClick>
+						if UsePowerTrackerCheckButton:GetChecked() then
+							if powerFrame then
+								powerFrame:Show()
+								powerFrame:SetScript("OnUpdate",RC32MonitorPowers)
+							end
+							if segmentedPowerTracker then
+								segmentedPowerTracker:Show()
+								segmentedPowerTracker:SetScript("OnUpdate", RC32MonitorSegmentedPowers)
+							end
+							RC32CharacterData.powerFrame.show = true
+						else
+							if powerFrame then
+								powerFrame:SetScript("OnUpdate",nil)
+								powerFrame:Hide()
+							end
+							if segmentedPowerTracker then
+								segmentedPowerTracker:SetScript("OnUpdate", nil)
+								segmentedPowerTracker:Hide()
+							end
+							RC32CharacterData.powerFrame.show = false
+						end
+					</OnClick>
+				</Scripts>
+				<ButtonText text="Use Power Tracker" justifyH="LEFT">
+					<Anchors>
+						<Anchor x="30" y="0" point="LEFT" />
+					</Anchors>
+				</ButtonText>
+				<NormalFont style="FocusFontSmall" />
+			</CheckButton>
+			<CheckButton name="ShowPetWarningCheckButton" inherits="UICheckButtonTemplate" checked="true">
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset x="200" y="-415" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnShow>
+						self:SetChecked(RC32CharacterData and RC32CharacterData.petWarningEnabled ~= false)
+					</OnShow>
+					<OnClick>
+						if ShowPetWarningCheckButton:GetChecked() then
+							RC32CharacterData.petWarningEnabled = true
+							RC32_UpdatePetWarning()
+						else
+							RC32CharacterData.petWarningEnabled = false
+							if RC32PetWarning then RC32PetWarning:Hide() end
+						end
+					</OnClick>
+				</Scripts>
+				<ButtonText text="Show Pet Warning" justifyH="LEFT">
+					<Anchors>
+						<Anchor x="30" y="0" point="LEFT" />
+					</Anchors>
+				</ButtonText>
+				<NormalFont style="FocusFontSmall" />
+			</CheckButton>
+			<CheckButton name="ShowDotTrackerCheckButton" inherits="UICheckButtonTemplate" checked="true">
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset x="26" y="-415" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnShow>
+						self:SetChecked(RC32CharacterData and RC32CharacterData.dotTrackerEnabled ~= false)
+					</OnShow>
+					<OnClick>
+						if ShowDotTrackerCheckButton:GetChecked() then
+							if RC32_ToggleDotTracker then RC32_ToggleDotTracker(true) end
+						else
+							if RC32_ToggleDotTracker then RC32_ToggleDotTracker(false) end
+						end
+					</OnClick>
+				</Scripts>
+				<ButtonText text="Show DoT Tracker" justifyH="LEFT">
+					<Anchors>
+						<Anchor x="30" y="0" point="LEFT" />
+					</Anchors>
+				</ButtonText>
+				<NormalFont style="FocusFontSmall" />
+			</CheckButton>
+			<Frame name="RC32MenuBackgroundLabelFrame">
+				<Size>
+					<AbsDimension x="100" y="20" />
+				</Size>
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset x="26" y="-440" />
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<FontString name="RC32MenuBackgroundLabel" inherits="GameFontNormalSmall" text="Menu Background:">
+							<Anchors>
+								<Anchor point="LEFT" />
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+			</Frame>
+			<Frame name="RC32MenuBackgroundDropdown" inherits="UIDropDownMenuTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset x="10" y="-450" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnShow>
+						RC32_InitMenuBackgroundDropdown()
+					</OnShow>
+				</Scripts>
+			</Frame>
+			<Frame name="RC32MaxStackSoundLabelFrame">
+				<Size>
+					<AbsDimension x="100" y="20" />
+				</Size>
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset x="200" y="-440" />
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<FontString name="RC32MaxStackSoundLabel" inherits="GameFontNormalSmall" text="Max Stack Sound:">
+							<Anchors>
+								<Anchor point="LEFT" />
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+			</Frame>
+			<Frame name="RC32MaxStackSoundDropdown" inherits="UIDropDownMenuTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset x="185" y="-450" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnShow>
+						RC32_InitMaxStackSoundDropdown()
+					</OnShow>
+				</Scripts>
+			</Frame>
+			<Frame name="RC32HealthSliderBackdrop">
+				<Size>
+					<AbsDimension x="6" y="78" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="-100" y="50" />
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture>
+							<Size>
+								<AbsDimension x="6" y="78" />
+							</Size>
+							<Anchors>
+								<Anchor point="CENTER" />
+							</Anchors>
+							<Color r="0.3" g="0.3" b="0.3" a="0.8" />
+						</Texture>
+					</Layer>
+				</Layers>
+			</Frame>
+			<Frame name="RC32ManaSliderBackdrop">
+				<Size>
+					<AbsDimension x="6" y="78" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="-50" y="50" />
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture>
+							<Size>
+								<AbsDimension x="6" y="78" />
+							</Size>
+							<Anchors>
+								<Anchor point="CENTER" />
+							</Anchors>
+							<Color r="0.3" g="0.3" b="0.3" a="0.8" />
+						</Texture>
+					</Layer>
+				</Layers>
+			</Frame>
+			<Frame name="RC32PetSliderBackdrop">
+				<Size>
+					<AbsDimension x="6" y="78" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="0" y="50" />
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture>
+							<Size>
+								<AbsDimension x="6" y="78" />
+							</Size>
+							<Anchors>
+								<Anchor point="CENTER" />
+							</Anchors>
+							<Color r="0.3" g="0.3" b="0.3" a="0.8" />
+						</Texture>
+					</Layer>
+				</Layers>
+			</Frame>
+			<Slider name="RC32HealthScaleSlider" inherits="OptionsSliderTemplate" minValue="50" maxValue="175" orientation="VERTICAL">
+				<Size>
+					<AbsDimension x="26" y="100" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="-100" y="50" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						getglobal(self:GetName().."Text"):SetText("Health")
+						getglobal(self:GetName().."High"):SetText("")
+						getglobal(self:GetName().."Low"):SetText("")
+						self:SetValueStep(1)
+					</OnLoad>
+					<OnValueChanged>
+						local scale = 225 - self:GetValue()
+						RC32SetOrbScale("health", scale)
+						if RC32HealthScaleValue then
+							RC32HealthScaleValue:SetText(math.floor(scale) .. "%")
+						end
+					</OnValueChanged>
+				</Scripts>
+			</Slider>
+			<Button name="RC32HealthScaleResetButton" inherits="UIPanelButtonTemplate">
+				<Size>
+					<AbsDimension x="18" y="18" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="-75" y="110" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						self:SetText("R")
+					</OnLoad>
+					<OnClick>
+						RC32HealthScaleSlider:SetValue(125)
+						RC32SetOrbScale("health", 100)
+						if RC32HealthScaleValue then RC32HealthScaleValue:SetText("100%") end
+					</OnClick>
+				</Scripts>
+			</Button>
+			<Frame name="RC32HealthScaleValueFrame">
+				<Size>
+					<AbsDimension x="50" y="20" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="-100" y="-15" />
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<FontString name="RC32HealthScaleValue" inherits="GameFontNormalSmall" text="100%">
+							<Anchors>
+								<Anchor point="CENTER" />
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+			</Frame>
+			<Slider name="RC32ManaScaleSlider" inherits="OptionsSliderTemplate" minValue="50" maxValue="175" orientation="VERTICAL">
+				<Size>
+					<AbsDimension x="26" y="100" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="-50" y="50" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						getglobal(self:GetName().."Text"):SetText("Mana")
+						getglobal(self:GetName().."High"):SetText("")
+						getglobal(self:GetName().."Low"):SetText("")
+						self:SetValueStep(1)
+					</OnLoad>
+					<OnValueChanged>
+						local scale = 225 - self:GetValue()
+						RC32SetOrbScale("mana", scale)
+						if RC32ManaScaleValue then
+							RC32ManaScaleValue:SetText(math.floor(scale) .. "%")
+						end
+					</OnValueChanged>
+				</Scripts>
+			</Slider>
+			<Button name="RC32ManaScaleResetButton" inherits="UIPanelButtonTemplate">
+				<Size>
+					<AbsDimension x="18" y="18" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="-25" y="110" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						self:SetText("R")
+					</OnLoad>
+					<OnClick>
+						RC32ManaScaleSlider:SetValue(125)
+						RC32SetOrbScale("mana", 100)
+						if RC32ManaScaleValue then RC32ManaScaleValue:SetText("100%") end
+					</OnClick>
+				</Scripts>
+			</Button>
+			<Frame name="RC32ManaScaleValueFrame">
+				<Size>
+					<AbsDimension x="50" y="20" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="-50" y="-15" />
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<FontString name="RC32ManaScaleValue" inherits="GameFontNormalSmall" text="100%">
+							<Anchors>
+								<Anchor point="CENTER" />
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+			</Frame>
+			<Slider name="RC32PetScaleSlider" inherits="OptionsSliderTemplate" minValue="50" maxValue="175" orientation="VERTICAL">
+				<Size>
+					<AbsDimension x="26" y="100" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="0" y="50" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						getglobal(self:GetName().."Text"):SetText("Pet")
+						getglobal(self:GetName().."High"):SetText("")
+						getglobal(self:GetName().."Low"):SetText("")
+						self:SetValueStep(1)
+					</OnLoad>
+					<OnValueChanged>
+						local scale = 225 - self:GetValue()
+						RC32SetOrbScale("pet", scale)
+						if RC32PetScaleValue then
+							RC32PetScaleValue:SetText(math.floor(scale) .. "%")
+						end
+					</OnValueChanged>
+				</Scripts>
+			</Slider>
+			<Button name="RC32PetScaleResetButton" inherits="UIPanelButtonTemplate">
+				<Size>
+					<AbsDimension x="18" y="18" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="25" y="110" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						self:SetText("R")
+					</OnLoad>
+					<OnClick>
+						RC32PetScaleSlider:SetValue(125)
+						RC32SetOrbScale("pet", 100)
+						if RC32PetScaleValue then RC32PetScaleValue:SetText("100%") end
+					</OnClick>
+				</Scripts>
+			</Button>
+			<Frame name="RC32PetScaleValueFrame">
+				<Size>
+					<AbsDimension x="50" y="20" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="0" y="-15" />
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<FontString name="RC32PetScaleValue" inherits="GameFontNormalSmall" text="100%">
+							<Anchors>
+								<Anchor point="CENTER" />
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+			</Frame>
+			<Frame name="RC32PowerTrackerRotationSliderBackdrop">
+				<Size>
+					<AbsDimension x="6" y="78" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="50" y="50" />
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture setAllPoints="true">
+							<Color r="0.3" g="0.3" b="0.3" a="0.8"/>
+						</Texture>
+					</Layer>
+				</Layers>
+			</Frame>
+			<Slider name="RC32PowerTrackerRotationSlider" inherits="OptionsSliderTemplate" minValue="0" maxValue="360" defaultValue="0" orientation="VERTICAL">
+				<Size>
+					<AbsDimension x="26" y="100" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="50" y="50" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						getglobal(self:GetName().."Text"):SetText("Rotate")
+						getglobal(self:GetName().."High"):SetText("")
+						getglobal(self:GetName().."Low"):SetText("")
+						self:SetValueStep(5)
+						self:SetMinMaxValues(0, 360)
+						self:SetValue(0)
+					</OnLoad>
+					<OnValueChanged>
+						local val = self:GetValue()
+						local rotation = 270 + val
+						if rotation >= 360 then rotation = rotation - 360 end
+						if RC32SetPowerTrackerRotation then
+							RC32SetPowerTrackerRotation(rotation)
+						end
+						if RC32RotateValue then
+							RC32RotateValue:SetText(math.floor(val) .. "°")
+						end
+					</OnValueChanged>
+				</Scripts>
+			</Slider>
+			<Button name="RC32PowerTrackerResetButton" inherits="UIPanelButtonTemplate">
+				<Size>
+					<AbsDimension x="18" y="18" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="75" y="110" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						self:SetText("R")
+					</OnLoad>
+					<OnClick>
+						RC32PowerTrackerRotationSlider:SetValue(0)
+						if RC32SetPowerTrackerRotation then
+							RC32SetPowerTrackerRotation(270)
+						end
+						if RC32RotateValue then RC32RotateValue:SetText("0°") end
+					</OnClick>
+				</Scripts>
+			</Button>
+			<Frame name="RC32RotateValueFrame">
+				<Size>
+					<AbsDimension x="50" y="20" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="50" y="-15" />
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<FontString name="RC32RotateValue" inherits="GameFontNormalSmall" text="0°">
+							<Anchors>
+								<Anchor point="CENTER" />
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+			</Frame>
+			<Frame name="RC32PowerTrackerScaleSliderBackdrop">
+				<Size>
+					<AbsDimension x="6" y="78" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="100" y="50" />
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture setAllPoints="true">
+							<Color r="0.3" g="0.3" b="0.3" a="0.8"/>
+						</Texture>
+					</Layer>
+				</Layers>
+			</Frame>
+			<Slider name="RC32PowerTrackerScaleSlider" inherits="OptionsSliderTemplate" minValue="50" maxValue="175" orientation="VERTICAL">
+				<Size>
+					<AbsDimension x="26" y="100" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="100" y="50" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						getglobal(self:GetName().."Text"):SetText("Scale")
+						getglobal(self:GetName().."High"):SetText("")
+						getglobal(self:GetName().."Low"):SetText("")
+						self:SetValueStep(1)
+					</OnLoad>
+					<OnValueChanged>
+						local scale = 225 - self:GetValue()
+						if RC32SetPowerTrackerScale then
+							RC32SetPowerTrackerScale(scale)
+						end
+						if RC32PowerTrackerScaleValue then
+							RC32PowerTrackerScaleValue:SetText(math.floor(scale) .. "%")
+						end
+					</OnValueChanged>
+				</Scripts>
+			</Slider>
+			<Button name="RC32PowerTrackerScaleResetButton" inherits="UIPanelButtonTemplate">
+				<Size>
+					<AbsDimension x="18" y="18" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="125" y="110" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						self:SetText("R")
+					</OnLoad>
+					<OnClick>
+						RC32PowerTrackerScaleSlider:SetValue(125)
+						if RC32SetPowerTrackerScale then
+							RC32SetPowerTrackerScale(100)
+						end
+						if RC32PowerTrackerScaleValue then RC32PowerTrackerScaleValue:SetText("100%") end
+					</OnClick>
+				</Scripts>
+			</Button>
+			<Frame name="RC32PowerTrackerScaleValueFrame">
+				<Size>
+					<AbsDimension x="50" y="20" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="100" y="-15" />
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<FontString name="RC32PowerTrackerScaleValue" inherits="GameFontNormalSmall" text="100%">
+							<Anchors>
+								<Anchor point="CENTER" />
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+			</Frame>
+		</Frames>
+		<Scripts>
+			<OnLoad>
+				self:RegisterForDrag("LeftButton");
+				self:SetClampedToScreen(true);
+			</OnLoad>
+			<OnDragStart>
+				self:StartMoving();
+			</OnDragStart>
+			<OnDragStop>
+				self:StopMovingOrSizing();
+			</OnDragStop>
+			<OnHide>
+				RC32GUI.configFrame:Hide()
+			</OnHide>
+		</Scripts>
+	</Frame>
+	<Frame parentKey="configFrame" name="RC32ConfigFrame" parent="RC32GUI" frameStrata="HIGH" hidden="true">
+		<Size>
+			<AbsDimension x="457" y="450" />
+		</Size>
+		<Anchors>
+			<Anchor point="RIGHT">
+				<Offset x="450" y="0" />
+			</Anchor>
+		</Anchors>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture file="Interface\AddOns\RCDiabloOrbs\images\CHICKEN_backdrop.tga">
+					<Anchors>
+						<Anchor point="TOPLEFT" />
+						<Anchor point="BOTTOMRIGHT" />
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="OVERLAY">
+				<FontString name="OrbTextureLabel" font="Interface\addons\RCDiabloOrbs\fonts\Of Wildflowers and Wings.ttf" text="Swirl Texture" justifyV="TOP">
+					<Size>
+						<AbsDimension x="181" y="39" />
+					</Size>
+					<Anchors>
+						<Anchor point="CENTER">
+							<Offset x="-26" y="-180" />
+						</Anchor>
+					</Anchors>
+					<FontHeight>
+						<AbsValue val="19" />
+					</FontHeight>
+					<Color r="1" g="0.5" b="0.5" />
+				</FontString>
+				<FontString name="FillTextureLabel" font="Interface\addons\RCDiabloOrbs\fonts\Of Wildflowers and Wings.ttf" text="Fill Texture" justifyV="TOP">
+					<Size>
+						<AbsDimension x="181" y="39" />
+					</Size>
+					<Anchors>
+						<Anchor point="CENTER">
+							<Offset x="-172" y="-180" />
+						</Anchor>
+					</Anchors>
+					<FontHeight>
+						<AbsValue val="19" />
+					</FontHeight>
+					<Color r="1" g="0.5" b="0.5" />
+				</FontString>
+			</Layer>
+			<Layer level="OVERLAY">
+				<FontString parentKey="text" inherits="BossEmoteNormalHuge" font="Interface\addons\RCDiabloOrbs\fonts\Of Wildflowers and Wings.ttf" text="" justifyV="TOP">
+					<Size>
+						<AbsDimension x="181" y="39" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOP">
+							<Offset x="0" y="-18" />
+						</Anchor>
+					</Anchors>
+					<FontHeight>
+						<AbsValue val="26" />
+					</FontHeight>
+					<Color r="1" g="0" b="0" />
+				</FontString>
+			</Layer>
+		</Layers>
+		<Frames>
+			<CheckButton name="RC32OrbPercentageCheckBox" inherits="UICheckButtonTemplate" checked="true">
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="75" y="-145" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+					</OnLoad>
+					<OnClick>
+						checkXMLOrbFontPlacement()
+					</OnClick>
+				</Scripts>
+				<ButtonText text="Show Percentage" justifyH="RIGHT">
+					<Anchors>
+						<Anchor x="121" y="0" point="RIGHT" />
+					</Anchors>
+				</ButtonText>
+				<NormalFont style="FocusFontSmall" />
+			</CheckButton>
+			<CheckButton name="RC32OrbValueCheckBox" inherits="UICheckButtonTemplate" checked="true">
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="-65" y="-145" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnShow>
+
+					</OnShow>
+					<OnLoad>
+					</OnLoad>
+					<OnClick>
+						checkXMLOrbFontPlacement()
+					</OnClick>
+				</Scripts>
+				<ButtonText text="Show Value" justifyH="RIGHT">
+					<Anchors>
+						<Anchor x="81" y="0" point="RIGHT" />
+					</Anchors>
+				</ButtonText>
+				<NormalFont style="FocusFontSmall" />
+			</CheckButton>
+			<CheckButton name="RC32OrbEnabledCheckbox" inherits="UICheckButtonTemplate" checked="true">
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="-195" y="-145" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnShow>
+						shouldEnabledCheckboxBeChecked();
+					</OnShow>
+					<OnLoad>
+					</OnLoad>
+					<OnClick>
+					</OnClick>
+				</Scripts>
+				<ButtonText text="Enabled" justifyH="RIGHT">
+					<Anchors>
+						<Anchor x="50" y="0" point="RIGHT" />
+					</Anchors>
+				</ButtonText>
+				<NormalFont style="FocusFontSmall" />
+			</CheckButton>
+			<Frame name="xmlOrbDisplayFrame2" toplevel="true">
+				<Size x="150" y="150" />
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="0" y="10" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						FillXMLTemplate(self)
+					</OnLoad>
+				</Scripts>
+			</Frame>
+		</Frames>
+		<Scripts>
+			<OnLoad>
+				RC32ConfigFrame:Hide()
+				RC32ConfigFrame:SetClampedToScreen(true)
+			</OnLoad>
+		</Scripts>
+	</Frame>
+	<Frame parentKey="OptionsButtonPanel" parent="RC32ConfigFrame">
+		<Size>
+			<AbsDimension x="457" y="268" />
+		</Size>
+		<Anchors>
+			<Anchor point="CENTER">
+				<Offset x="-435" y="101" />
+			</Anchor>
+		</Anchors>
+		<Frames>
+			<Frame name="ButtonListFrame" parent="RC32ConfigFrame">
+				<Size>
+					<AbsDimension x="451" y="56" />
+				</Size>
+				<Anchors>
+					<Anchor point="CENTER">
+						<Offset x="0" y="165" />
+					</Anchor>
+				</Anchors>
+				<Frames>
+					<Button name="FillButton" inherits="UIPanelButtonTemplate" text="Fill">
+						<Size>
+							<AbsDimension x="75" y="23" />
+						</Size>
+						<Anchors>
+							<Anchor point="TOPLEFT">
+								<Offset x="50" y="-17" />
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnClick>
+								ColorPickerFrame:Hide()
+								RC32ColorPicker("Filling")
+							</OnClick>
+						</Scripts>
+					</Button>
+					<Button name="SwirlButton" inherits="UIPanelButtonTemplate" text="Swirl">
+						<Size>
+							<AbsDimension x="75" y="23" />
+						</Size>
+						<Anchors>
+							<Anchor point="TOPLEFT">
+								<Offset x="144" y="-17" />
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnClick>
+								ColorPickerFrame:Hide()
+								RC32ColorPicker("Swirl")
+							</OnClick>
+						</Scripts>
+					</Button>
+					<Button name="PercentageButton" inherits="UIPanelButtonTemplate" text="Percentage">
+						<Size>
+							<AbsDimension x="85" y="23" />
+						</Size>
+						<Anchors>
+							<Anchor point="TOPLEFT">
+								<Offset x="229" y="-17" />
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnClick>
+								ColorPickerFrame:Hide()
+								RC32ColorPicker("Font1")
+							</OnClick>
+						</Scripts>
+					</Button>
+					<Button name="ValueButton" inherits="UIPanelButtonTemplate" text="Value">
+						<Size>
+							<AbsDimension x="75" y="23" />
+						</Size>
+						<Anchors>
+							<Anchor point="TOPLEFT">
+								<Offset x="329" y="-17" />
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnClick>
+								ColorPickerFrame:Hide()
+								RC32ColorPicker("Font2")
+							</OnClick>
+						</Scripts>
+					</Button>
+					<Button name="ResetColorsButton" inherits="UIPanelButtonTemplate" text="Reset Colors">
+						<Size>
+							<AbsDimension x="90" y="23" />
+						</Size>
+						<Anchors>
+							<Anchor point="TOPLEFT">
+								<Offset x="180" y="-40" />
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnClick>
+								ColorPickerFrame:Hide()
+								RC32ResetToClassColors()
+							</OnClick>
+						</Scripts>
+					</Button>
+				</Frames>
+			</Frame>
+			<Button name="RC32ConfigFrameCloseButton" inherits="UIPanelCloseButton" parent="RC32ConfigFrame" text="">
+				<Size>
+					<AbsDimension x="35" y="35" />
+				</Size>
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset x="422" y="0" />
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						RC32ConfigFrame:Hide()
+						ManaOrbOptionsDropDown:Hide()
+						HealthOrbOptionsDropDown:Hide()
+					</OnClick>
+				</Scripts>
+			</Button>
+		</Frames>
+	</Frame>
+	<Button name="CommitButton" inherits="GameMenuButtonTemplate" parent="RC32ConfigFrame" text="Save Changes">
+		<Size>
+			<AbsDimension x="133" y="23" />
+		</Size>
+		<Anchors>
+			<Anchor point="BOTTOM">
+				<Offset x="138" y="20" />
+			</Anchor>
+		</Anchors>
+		<Scripts>
+			<OnClick>
+				RC32ApplyChanges()
+			</OnClick>
+		</Scripts>
+	</Button>
+	<Button name="HealthOrbOptionsDropDown" inherits="UIDropDownMenuTemplate" hidden="true" parent="RC32ConfigFrame">
+		<Size x="200" y="45" />
+		<Anchors>
+			<Anchor point="TOPLEFT">
+				<Offset x="0" y="-15" />
+			</Anchor>
+		</Anchors>
+		<Scripts>
+			<OnLoad>
+				InitializeHealthOrbOptionsDropDown();
+			</OnLoad>
+			<OnShow>
+				CheckHealthOrbOptionValuesAgainstUIState();
+			</OnShow>
+		</Scripts>
+	</Button>
+	<Button name="ManaOrbOptionsDropDown" inherits="UIDropDownMenuTemplate" hidden="true" parent="RC32ConfigFrame">
+		<Size x="200" y="45" />
+		<Anchors>
+			<Anchor point="TOPLEFT">
+				<Offset x="0" y="-15" />
+			</Anchor>
+		</Anchors>
+		<Scripts>
+			<OnLoad>
+				InitializeManaOrbOptionsDropDown();
+			</OnLoad>
+			<OnShow>
+				CheckManaOrbOptionValuesAgainstUIState();
+			</OnShow>
+		</Scripts>
+	</Button>
+	<Button name="TextFormattingDropdown" inherits="UIDropDownMenuTemplate" hidden="false" parent="RC32ConfigFrame">
+		<Size x="200" y="45" />
+		<Anchors>
+			<Anchor point="TOPRIGHT">
+				<Offset x="22" y="-15" />
+			</Anchor>
+		</Anchors>
+		<Scripts>
+			<OnShow>
+				local fillOptions = {
+					"Truncate Value",
+					"Comma Separate Value",
+					"Raw Value"
+				}
+
+				function TextFormattingDropdown:OnClick(value)
+					UIDropDownMenu_SetSelectedID(TextFormattingDropdown,self:GetID())
+					local selectedId = UIDropDownMenu_GetSelectedID(TextFormattingDropdown)
+					if selectedId == 1 then
+						CommitButton.orbData.formatting.truncated = true;
+						CommitButton.orbData.formatting.commaSeparated = false;
+					elseif selectedId == 2 then
+						CommitButton.orbData.formatting.truncated = false;
+						CommitButton.orbData.formatting.commaSeparated = true;
+					elseif selectedId == 3 then
+						CommitButton.orbData.formatting.truncated = false;
+						CommitButton.orbData.formatting.commaSeparated = false;
+					end
+
+					UpdateXMLText(CommitButton.orb, CommitButton.orbData.formatting);
+				end
+
+				local function initMen(self, level)
+					local stuff = UIDropDownMenu_CreateInfo()
+					for k,v in pairs(fillOptions) do
+						stuff = {}
+						stuff.text = v
+						stuff.value = v
+						stuff.func = TextFormattingDropdown.OnClick
+						UIDropDownMenu_AddButton(stuff, level)
+					end
+				end
+				UIDropDownMenu_Initialize(TextFormattingDropdown, initMen)
+				UIDropDownMenu_JustifyText(TextFormattingDropdown, "LEFT")
+
+				--set the selected value appropriately
+				local index = 1
+				if CommitButton.orbData.formatting.truncated then
+					index = 1
+				elseif CommitButton.orbData.formatting.commaSeparated then
+					index = 2
+				else
+					index = 3
+				end
+
+				UIDropDownMenu_SetSelectedID(TextFormattingDropdown, index)
+			</OnShow>
+		</Scripts>
+	</Button>
+	<Button name="FillTexturesDropDown" inherits="UIDropDownMenuTemplate" parent="RC32ConfigFrame">
+		<Size x="200" y="45" />
+		<Anchors>
+			<Anchor point="BOTTOM">
+				<Offset x="-125" y="15" />
+			</Anchor>
+		</Anchors>
+		<Scripts>
+			<OnLoad>
+				function FillTexturesDropDown:OnClick(value)
+					UIDropDownMenu_SetSelectedID(FillTexturesDropDown,self:GetID())
+					RC32SelectedFillIndex = self:GetID() - 1
+					TryNewTextures(RC32FillTextureChoices[self:GetID() - 1],nil)
+				end
+
+				local textureNameTable = {
+					[0] = "Moon",
+					[1] = "Mist",
+					[2] = "Liquid Metal",
+					[3] = "Dragon Skin",
+					[4] = "Iris",
+					[5] = "Fractals",
+					[6] = "Warped"
+				}
+
+				local function fillMenu(self, level)
+					local num = table.getn(textureNameTable)
+					for i=0,num,1 do
+						local val = textureNameTable[i]
+						stuff = {}
+						stuff.text = val
+						stuff.value = val
+						stuff.func = FillTexturesDropDown.OnClick
+						UIDropDownMenu_AddButton(stuff, level)
+					end
+				end
+				UIDropDownMenu_Initialize(FillTexturesDropDown, fillMenu)
+				UIDropDownMenu_SetSelectedID(FillTexturesDropDown, 1)
+				UIDropDownMenu_JustifyText(FillTexturesDropDown, "LEFT")
+			</OnLoad>
+			<OnShow>
+
+			</OnShow>
+		</Scripts>
+	</Button>
+	<Button name="RotationTexturesDropDown" inherits="UIDropDownMenuTemplate" parent="RC32ConfigFrame">
+		<Size x="200" y="45" />
+		<Anchors>
+			<Anchor point="BOTTOM">
+				<Offset x="12" y="15" />
+			</Anchor>
+		</Anchors>
+		<Scripts>
+			<OnLoad>
+				function RotationTexturesDropDown:OnClick(value)
+					UIDropDownMenu_SetSelectedID(RotationTexturesDropDown,self:GetID())
+					RC32SelectedRotationIndex = self:GetID() - 1
+					TryNewTextures(nil,RC32RotationTextureChoices[self:GetID() - 1])
+				end
+
+				local textureNameTable2 = {
+				[0] = "Galaxy",
+				[1] = "Bubbles",
+				[2] = "Eye Glow",
+				}
+
+				local function rotationMenu(self, level)
+					local num = table.getn(textureNameTable2)
+					for i=0,num,1 do
+						local val = textureNameTable2[i]
+						stuff = {}
+						stuff.text = val
+						stuff.value = val
+						stuff.func = RotationTexturesDropDown.OnClick
+						UIDropDownMenu_AddButton(stuff, level)
+					end
+				end
+				UIDropDownMenu_Initialize(RotationTexturesDropDown, rotationMenu)
+				UIDropDownMenu_SetSelectedID(RotationTexturesDropDown, 1)
+				UIDropDownMenu_JustifyText(RotationTexturesDropDown, "LEFT")
+			</OnLoad>
+			<OnShow>
+
+			</OnShow>
+		</Scripts>
+	</Button>
+</Ui>

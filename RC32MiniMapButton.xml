@@ -1,0 +1,90 @@
+﻿<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Script file="RC32MiniMapButton.lua" />
+	<Button name="RC32MiniMapButton" parent="Minimap" movable="true" enableMouse="true" frameStrata="LOW">
+		<Size>
+			<AbsDimension x="33" y="33" />
+		</Size>
+		<Anchors>
+			<Anchor point="TOPLEFT">
+				<Offset x="0" y="0" />
+			</Anchor>
+		</Anchors>
+		<Scripts>
+			<OnLoad>
+				RC32MiniMapButton:RegisterForDrag("LeftButton")
+				self:RegisterForClicks("LeftButtonUp","RightButtonUp")
+				self:SetScript("OnClick",function(_,arg1)
+					RC32MiniMapButton_OnClick()
+				end)
+				RC32MiniMapButtonPosition_LoadFromDefaults()
+			</OnLoad>
+			<OnDragStart>
+				RC32MiniMapButton_DraggingFrame:Show()
+			</OnDragStart>
+			<OnDragStop>
+				RC32MiniMapButton_DraggingFrame:Hide()
+			</OnDragStop>
+			<OnEnter>
+				RC32MinimapButtonTooltip:ClearLines()
+				RC32MinimapButtonTooltip:SetOwner(RC32MiniMapButton,"CENTER")
+				RC32MinimapButtonTooltip:AddLine("RC Diablo Orbs")
+				RC32MinimapButtonTooltip:AddLine("Left click to open the menu")
+				RC32MinimapButtonTooltip:AddLine("Hold Shift and Drag on any orb to move it.")
+				RC32MinimapButtonTooltip:Show()
+			</OnEnter>
+			<OnLeave>
+				RC32MinimapButtonTooltip:Hide()
+			</OnLeave>
+		</Scripts>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture name="RC32MiniMapButton_Icon" file="Interface\addons\RCDiabloOrbs\images\orb_filling5.tga">
+					<Size>
+						<AbsDimension x="21" y="21" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOPLEFT">
+							<Offset>
+								<AbsDimension x="7" y="-6" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+					<Color r="1" g="0" b="0" a="1"/>
+				</Texture>
+			</Layer>
+			<Layer level="OVERLAY">
+				<Texture file="Interface\Minimap\MiniMap-TrackingBorder">
+					<Size>
+						<AbsDimension x="56" y="56" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOPLEFT"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Frame name="RC32MiniMapButton_DraggingFrame" hidden="true">
+				<Scripts>
+					<OnUpdate>
+						RC32_Minimap_Update()
+					</OnUpdate>
+				</Scripts>
+			</Frame>
+			<GameTooltip name="RC32MinimapButtonTooltip" inherits="GameTooltipTemplate">
+				<Layers>
+					<Layer>
+						<FontString font="Interface\addons\RCDiabloOrbs\fonts\Of Wildflowers and Wings.ttf">
+							<FontHeight val="16"></FontHeight>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad>
+					</OnLoad>
+				</Scripts>
+			</GameTooltip>
+		</Frames>
+		<HighlightTexture alphaMode="ADD" file="Interface\Minimap\UI-Minimap-ZoomButton-Highlight"/>
+	</Button>
+</Ui>
