@@ -1,0 +1,12 @@
+## Title: RC Diablo Orbs
+## Version: 2.1.8.5
+## Author: Raw Card
+## X-Original-Author: John Rubin (Mistra)
+## X-Curse-Project-ID: 1378641
+## Interface: 16001
+## AllowLoadGameType: camelot
+## SavedVariablesPerCharacter: RC32CharacterData
+## SavedVariables: RC32MiniMapButtonPosition, RC32AccountData
+## Notes: Fully customizable Diablo Orbs, for WoW!
+RCDiabloOrbs.xml
+RC32MiniMapButton.xml

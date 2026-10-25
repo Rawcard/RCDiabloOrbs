@@ -15,6 +15,51 @@
 
 --THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+-- Client compatibility -------------------------------------------------------
+-- Retail (11.0+) and WoW Forever removed some old spell and aura functions, so
+-- rebuild them from the newer C_Spell / C_UnitAuras ones where they're missing.
+-- They're locals: other addons never see them.
+local GetSpellInfo = GetSpellInfo or function(spell)
+	if spell == nil or not (C_Spell and C_Spell.GetSpellInfo) then return nil end
+	local info = C_Spell.GetSpellInfo(spell)
+	if info then
+		return info.name, nil, info.iconID, info.castTime, info.minRange, info.maxRange, info.spellID
+	end
+end
+local GetSpellCooldown = GetSpellCooldown or function(spell)
+	if not (C_Spell and C_Spell.GetSpellCooldown) then return 0, 0, 1 end
+	local info = C_Spell.GetSpellCooldown(spell)
+	if info then
+		return info.startTime, info.duration, info.isEnabled and 1 or 0, info.modRate
+	end
+	return 0, 0, 1
+end
+local IsUsableSpell = IsUsableSpell or function(spell)
+	if C_Spell and C_Spell.IsSpellUsable then
+		return C_Spell.IsSpellUsable(spell)
+	end
+	return false, false
+end
+local UnitDebuff = UnitDebuff or function(unit, index, filter)
+	if C_UnitAuras and C_UnitAuras.GetDebuffDataByIndex then
+		local a = C_UnitAuras.GetDebuffDataByIndex(unit, index, filter)
+		if a then
+			return a.name, a.icon, a.applications, a.dispelName, a.duration, a.expirationTime, a.sourceUnit, nil, nil, a.spellId
+		end
+	end
+end
+
+-- Retail and WoW Forever hide some combat values from addons ("secret
+-- values"): they can be shown but not compared or used in math. RC32_Secret
+-- tells them apart; on other clients it's always false.
+function RC32_Secret(v)
+	return issecretvalue ~= nil and issecretvalue(v) or false
+end
+-- a yes/no answer we can trust (a hidden one counts as "no")
+function RC32_True(v)
+	return not RC32_Secret(v) and v and true or false
+end
+
 -- Version detection and compatibility layer
 local _, _, _, tocVersion = GetBuildInfo()
 RC32_TOC_VERSION = tocVersion or 0
@@ -91,7 +136,7 @@ local function RC32_ShowUnitMenu(self, unit)
 end
 
 
-RC32_ADDON_VERSION = "1.18"
+RC32_ADDON_VERSION = "2.1.8.5"
 
 -- Safe dropdown toggle function (fixes ElvUI compatibility issue)
 -- ElvUI skinning can interfere with dropdown button creation, causing nil errors
@@ -135,7 +180,7 @@ RC32_POWER_BURNING_EMBERS = RC32_IS_MOP_OR_LATER and 14 or nil
 RC32_POWER_DEMONIC_FURY = RC32_IS_MOP_OR_LATER and 15 or nil
 
 -- Safe UnitPower wrapper that handles version differences
-function RC32_UnitPower(unit, powerType)
+local function rawUnitPower(unit, powerType)
 	if powerType == nil then
 		return UnitPower(unit)
 	end
@@ -146,7 +191,7 @@ function RC32_UnitPower(unit, powerType)
 	return UnitPower(unit, powerType)
 end
 
-function RC32_UnitPowerMax(unit, powerType)
+local function rawUnitPowerMax(unit, powerType)
 	if powerType == nil then
 		return UnitPowerMax(unit)
 	end
@@ -155,6 +200,54 @@ function RC32_UnitPowerMax(unit, powerType)
 		return UnitPowerMax(unit)
 	end
 	return UnitPowerMax(unit, powerType)
+end
+
+-- These always return plain numbers. When Retail / WoW Forever hide the values
+-- in combat, the max is the last one seen out of combat and the current value
+-- comes from the readable percentage.
+local RC32_powerMaxSeen = {}
+function RC32_UnitPowerMax(unit, powerType)
+	local mx = rawUnitPowerMax(unit, powerType)
+	local key = tostring(unit) .. ":" .. tostring(powerType)
+	if RC32_Secret(mx) then
+		return RC32_powerMaxSeen[key] or 5
+	end
+	if mx then RC32_powerMaxSeen[key] = mx end
+	return mx
+end
+
+function RC32_UnitPower(unit, powerType)
+	local v = rawUnitPower(unit, powerType)
+	if not RC32_Secret(v) then
+		return v
+	end
+	local mx = RC32_UnitPowerMax(unit, powerType) or 5
+	local curve = CurveConstants and CurveConstants.ScaleTo100
+	local ok, pct = false, nil
+	if UnitPowerPercent then
+		ok, pct = pcall(UnitPowerPercent, unit, powerType, curve)
+	end
+	if not ok or type(pct) ~= "number" or RC32_Secret(pct) then
+		return 0
+	end
+	if not curve then pct = pct * 100 end
+	return math.floor(pct / 100 * mx + 0.5)
+end
+
+-- combo points as a plain number on every client
+function RC32_ComboPoints()
+	local cp = GetComboPoints and GetComboPoints("player", "target")
+	if cp == nil then cp = UnitPower("player", 4) end
+	if RC32_Secret(cp) then
+		local mx = RC32_powerMaxSeen["player:4"] or 5
+		local curve = CurveConstants and CurveConstants.ScaleTo100
+		local ok, pct = false, nil
+		if UnitPowerPercent then ok, pct = pcall(UnitPowerPercent, "player", 4, curve) end
+		if not ok or type(pct) ~= "number" or RC32_Secret(pct) then return 0 end
+		if not curve then pct = pct * 100 end
+		return math.floor(pct / 100 * mx + 0.5)
+	end
+	return tonumber(cp) or 0
 end
 
 -- Resolve the Shadow Orbs power index at runtime as a safety net: probe known
@@ -170,7 +263,7 @@ function RC32_GetShadowOrbPower()
 	for _, c in ipairs(cands) do
 		if type(c) == "number" then
 			local mx = UnitPowerMax("player", c)
-			if mx and mx > 0 then
+			if mx and not RC32_Secret(mx) and mx > 0 then
 				RC32_shadowOrbPT = c   -- confirmed valid; cache it
 				return c
 			end
@@ -260,7 +353,11 @@ orbClassColors = {
 
 	[9] = {health = {r = 0.33, g = 0.54, b = 0.52, a = 1},mana = {r = 1.00, g = 1.00, b = 1.00, a = 1},  animation = "SPELLS\\GreenRadiationFog.m2", name = "Monk"}, --monk preset
 
-	[10] = {health = {r = 1.00, g = 0.49, b = 0.04, a = 1},mana = {r = 0.0, g = 0.44, b = 0.87, a = 1},  animation = "SPELLS\\WhiteRadiationFog.m2", name = "Druid"} --druid preset
+	[10] = {health = {r = 1.00, g = 0.49, b = 0.04, a = 1},mana = {r = 0.0, g = 0.44, b = 0.87, a = 1},  animation = "SPELLS\\WhiteRadiationFog.m2", name = "Druid"}, --druid preset
+
+	[11] = {health = {r = 0.64, g = 0.19, b = 0.79, a = 1},mana = {r = 0.79, g = 0.26, b = 0.99, a = 1},  animation = "SPELLS\\GreenRadiationFog.m2", name = "Demon Hunter"}, --demon hunter preset (Retail)
+
+	[12] = {health = {r = 0.20, g = 0.58, b = 0.50, a = 1},mana = {r = 0.0, g = 0.44, b = 0.87, a = 1},  animation = "SPELLS\\WhiteRadiationFog.m2", name = "Evoker"} --evoker preset (Retail)
 }
 
 local fontChoices = {
@@ -270,8 +367,9 @@ local fontChoices = {
 
 
 local function getClassColor()
-	if RC32classNumber then
-		RC32className = RC32localizedDisplayName
+	if RC32classNumber and orbClassColors[RC32classNumber - 1] then
+		-- the English class name, so class checks work in every client language
+		RC32className = orbClassColors[RC32classNumber - 1].name
 		return RC32classNumber - 1
 	else
 		local num = table.getn(orbClassColors)
@@ -281,7 +379,8 @@ local function getClassColor()
 				return i 
 			end
 		end
-		print("Did not find the class.  "..UnitClass("player"))
+		print("Did not find the class.  "..tostring(UnitClass("player")))
+		RC32className = RC32className or RC32localizedDisplayName
 		return 0
 	end
 end
@@ -439,18 +538,29 @@ local function CreateWelcomePopup()
 	
 	-- Content frame
 	local content = CreateFrame("Frame", nil, scrollFrame)
-	content:SetSize(440, 1200)
+	content:SetSize(440, 1500)
 	scrollFrame:SetScrollChild(content)
 	
 	-- Info text
 	local infoText = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 	infoText:SetPoint("TOPLEFT", content, "TOPLEFT", 5, 0)
-	infoText:SetWidth(430)
+	-- a fixed height: the WoW Forever client can freeze measuring wrapped text
+	infoText:SetSize(430, 1490)
 	infoText:SetJustifyH("LEFT")
+	infoText:SetJustifyV("TOP")
 	infoText:SetSpacing(3)
 	infoText:SetText(
 		"|cFFFFFFFFWelcome to RC Diablo Orbs v" .. RC32_ADDON_VERSION .. "!|r\n\n" ..
-		"|cFFFF4444=== WHAT'S NEW (v1.18) ===|r\n\n" ..
+		"|cFFFF4444=== WHAT'S NEW (v2.1.8.5) ===|r\n\n" ..
+		"|cFF00FF00Works on every WoW client|r\n" ..
+		"  • Retail (Midnight), MoP, Cata, Wrath, TBC, Classic Era\n" ..
+		"    and WoW Forever\n" ..
+		"  • Retail & Forever: orbs keep working in combat, where\n" ..
+		"    the game hides exact health and power from addons\n" ..
+		"  • Retail: fixed errors at login, Demon Hunter & Evoker\n" ..
+		"    colors added, Warlocks use Soul Shards in every spec\n" ..
+		"  • Class detection works in every game language\n\n" ..
+		"|cFFFF4444=== EARLIER (v1.18) ===|r\n\n" ..
 		"|cFF00FF00Battle Rez Panel (NEW!)|r\n" ..
 		"  • VuhDo-style raid frame for one-click battle rezzing\n" ..
 		"  • 5x5 grid layout (25 players) - configurable via sliders\n" ..
@@ -815,13 +925,13 @@ function RC32_BuildRichTooltip(unit)
 		end
 
 		-- Status
-		if UnitIsDead and UnitIsDead(unit) then
+		if UnitIsDead and RC32_True(UnitIsDead(unit)) then
 			GameTooltip:AddLine("|cFFFF4444Dead|r", 1, 1, 1)
-		elseif UnitIsGhost and UnitIsGhost(unit) then
+		elseif UnitIsGhost and RC32_True(UnitIsGhost(unit)) then
 			GameTooltip:AddLine("|cFFAAAAAAGhost|r", 1, 1, 1)
-		elseif UnitIsAFK and UnitIsAFK(unit) then
+		elseif UnitIsAFK and RC32_True(UnitIsAFK(unit)) then
 			GameTooltip:AddLine("|cFFFFCC00<AFK>|r", 1, 1, 1)
-		elseif UnitIsDND and UnitIsDND(unit) then
+		elseif UnitIsDND and RC32_True(UnitIsDND(unit)) then
 			GameTooltip:AddLine("|cFFFFCC00<DND>|r", 1, 1, 1)
 		end
 
@@ -845,7 +955,16 @@ function RC32_BuildRichTooltip(unit)
 
 	-- Health bar with numbers
 	local hp, hpMax = UnitHealth(unit), UnitHealthMax(unit)
-	if hpMax and hpMax > 0 then
+	if RC32_Secret(hp) or RC32_Secret(hpMax) then
+		-- hidden in combat (Retail / WoW Forever): the bar takes them as they are
+		local statusBar = _G["GameTooltipStatusBar"]
+		if statusBar then
+			statusBar:SetMinMaxValues(0, hpMax)
+			statusBar:SetValue(hp)
+			statusBar:Show()
+			if statusBar.rc32text then statusBar.rc32text:Hide() end
+		end
+	elseif hpMax and hpMax > 0 then
 		GameTooltip:AddLine(" ")
 		local statusBar = _G["GameTooltipStatusBar"]
 		if statusBar then
@@ -900,16 +1019,78 @@ local function valueFormat(val,petOverride)
 	return newVal
 end
 
-local previousHealthValue = UnitHealth("player")
+-- Readable numbers for the orb math. On Retail and WoW Forever the game hides
+-- exact health and power in combat (secret values) but still gives a readable
+-- percentage, so then the orbs fill from that, on a 0-100 scale. The third
+-- value is the real current value (maybe secret) for the number on the orb.
+local function RC32_Percent(fn, ...)
+	if not fn then return nil end
+	local ok, pct = pcall(fn, ...)
+	if ok and type(pct) == "number" and not RC32_Secret(pct) then return pct end
+	return nil
+end
+function RC32_ReadHealth(unit)
+	local cur, mx = UnitHealth(unit), UnitHealthMax(unit)
+	if RC32_Secret(cur) or RC32_Secret(mx) then
+		local curve = CurveConstants and CurveConstants.ScaleTo100
+		local pct = RC32_Percent(UnitHealthPercent, unit, false, curve)
+		if pct and not curve then pct = pct * 100 end
+		return pct or 100, 100, cur
+	end
+	cur, mx = tonumber(cur), tonumber(mx)
+	return cur, mx, cur
+end
+function RC32_ReadPower(unit, powerType)
+	local cur, mx
+	if powerType then
+		cur, mx = UnitPower(unit, powerType), UnitPowerMax(unit, powerType)
+	else
+		cur, mx = UnitPower(unit), UnitPowerMax(unit)
+	end
+	if RC32_Secret(cur) or RC32_Secret(mx) then
+		local curve = CurveConstants and CurveConstants.ScaleTo100
+		local pct = RC32_Percent(UnitPowerPercent, unit, powerType or (UnitPowerType and UnitPowerType(unit)), curve)
+		if pct and not curve then pct = pct * 100 end
+		return pct or 0, 100, cur
+	end
+	cur, mx = tonumber(cur), tonumber(mx)
+	return cur, mx, cur
+end
+-- the number shown on an orb; a secret value is shown as the game formats it
+local function RC32_ValueText(real, value, petOverride)
+	if RC32_Secret(real) then
+		if AbbreviateNumbers then
+			local ok, text = pcall(AbbreviateNumbers, real)
+			if ok and text then return text end
+		end
+		return real -- FontString:SetText accepts a secret value
+	end
+	return valueFormat(value or 0, petOverride)
+end
+local function RC32_IsDead(unit)
+	local dead = UnitIsDead(unit)
+	return not RC32_Secret(dead) and dead and true or false
+end
+local function RC32_Readable(v, fallback)
+	if RC32_Secret(v) or not tonumber(v) then return fallback end
+	return v
+end
+
+local previousHealthValue = RC32_Readable(UnitHealth("player"), 0)
+local lastHealthScale
 local function monitorHealth(orb)
 	local unitHealthString = "player"
 	if vehicleInUse == 1 then
 		unitHealthString = "vehicle"
 	end
-	local maxHealth = UnitHealthMax(unitHealthString)
-	if not tonumber(maxHealth) or maxHealth == 0 then maxHealth = 1 end
-	local currentHealth = UnitHealth(unitHealthString)
-	if not tonumber(currentHealth) then currentHealth = 1 end
+	local currentHealth, maxHealth, realHealth = RC32_ReadHealth(unitHealthString)
+	if not maxHealth or maxHealth == 0 then maxHealth = 1 end
+	if not currentHealth then currentHealth = 1 end
+	-- switching between exact values and percentages (combat on Retail / Forever): jump, don't slide
+	if lastHealthScale ~= maxHealth then
+		previousHealthValue = currentHealth
+		lastHealthScale = maxHealth
+	end
 	local healthPercentage = currentHealth/maxHealth
 	local inverseHealthPercentage = math.abs(healthPercentage - 1)
 
@@ -945,10 +1126,10 @@ local function monitorHealth(orb)
 	if tonumber(string1) == nil then string1 = 0 end
 	orb.font1:SetText(string1)
 
-	local string = valueFormat(currentHealth)
+	local string = RC32_ValueText(realHealth, currentHealth)
 	orb.font2:SetText(string)
 
-	if UnitIsDead(unitHealthString) then
+	if RC32_IsDead(unitHealthString) then
 		orb.font2:SetText("DEAD :'(")
 	end
 
@@ -959,16 +1140,20 @@ local function monitorHealth(orb)
 	orb.galaxy3:SetAlpha(newDisplayPercentage)
 end
 
-local previousPowerValue = UnitPower("player")
+local previousPowerValue = RC32_Readable(UnitPower("player"), 0)
+local lastPowerScale
 local function monitorPower(orb)
 	local unitPowerString = "player"
 	if vehicleInUse == 1 then
 		unitPowerString = "vehicle"
 	end
-	local maxPower = UnitPowerMax(unitPowerString)
-	if not tonumber(maxPower) or maxPower == 0 then maxPower = 1 end
-	local currentPower = UnitPower(unitPowerString)
-	if not tonumber(currentPower) then currentPower = 1 end
+	local currentPower, maxPower, realPower = RC32_ReadPower(unitPowerString)
+	if not maxPower or maxPower == 0 then maxPower = 1 end
+	if not currentPower then currentPower = 1 end
+	if lastPowerScale ~= maxPower then
+		previousPowerValue = currentPower
+		lastPowerScale = maxPower
+	end
 	local powerPercentage = currentPower/maxPower
 	local inversePowerPercentage = math.abs(powerPercentage - 1)
 
@@ -1005,10 +1190,10 @@ local function monitorPower(orb)
 	if tonumber(string1) == nil then string1 = 0 end
 	orb.font1:SetText(string1)
 
-	local string = valueFormat(currentPower)
+	local string = RC32_ValueText(realPower, currentPower)
 	orb.font2:SetText(string)
 
-	if UnitIsDead(unitPowerString) then
+	if RC32_IsDead(unitPowerString) then
 		orb.font2:SetText("DEAD :'(")
 	end
 
@@ -1019,13 +1204,17 @@ local function monitorPower(orb)
 	orb.galaxy3:SetAlpha(newDisplayPercentage)
 end
 
-local previousPetHealth = UnitHealth("pet")
+local previousPetHealth = RC32_Readable(UnitHealth("pet"), 0)
+local lastPetHealthScale
 local function PetHealthUpdate(orb)
 	local unitHealthString = "pet"
-	local maxHealth = UnitHealthMax(unitHealthString)
-	if not tonumber(maxHealth) or maxHealth == 0 then maxHealth = 1 end
-	local currentHealth = UnitHealth(unitHealthString)
-	if not tonumber(currentHealth) then currentHealth = 0 end
+	local currentHealth, maxHealth, realHealth = RC32_ReadHealth(unitHealthString)
+	if not maxHealth or maxHealth == 0 then maxHealth = 1 end
+	if not currentHealth then currentHealth = 0 end
+	if lastPetHealthScale ~= maxHealth then
+		previousPetHealth = currentHealth
+		lastPetHealthScale = maxHealth
+	end
 	local healthPercentage = currentHealth/maxHealth
 	local inverseHealthPercentage = math.abs(healthPercentage - 1)
 
@@ -1061,7 +1250,7 @@ local function PetHealthUpdate(orb)
 	if tonumber(string1) == nil then string1 = 0 end
 	orb.font1:SetText(string1)
 	
-	local string = valueFormat(currentHealth,true)
+	local string = RC32_ValueText(realHealth, currentHealth, true)
 	orb.font3:SetText(string)
 
 	orb.filling1:SetHeight(targetTexHeight)
@@ -1071,13 +1260,17 @@ local function PetHealthUpdate(orb)
 	orb.galaxy3:SetAlpha(newDisplayPercentage * 0.2)
 end
 
-local previousPetPower = UnitPower("pet")
+local previousPetPower = RC32_Readable(UnitPower("pet"), 0)
+local lastPetPowerScale
 local function PetPowerUpdate(orb)
 	local unitPowerString = "pet"
-	local maxPower = UnitPowerMax(unitPowerString)
-	if not tonumber(maxPower) or maxPower == 0 then maxPower = 1 end
-	local currentPower = UnitPower(unitPowerString)
-	if not tonumber(currentPower) then currentPower = 0 end
+	local currentPower, maxPower, realPower = RC32_ReadPower(unitPowerString)
+	if not maxPower or maxPower == 0 then maxPower = 1 end
+	if not currentPower then currentPower = 0 end
+	if lastPetPowerScale ~= maxPower then
+		previousPetPower = currentPower
+		lastPetPowerScale = maxPower
+	end
 	local powerPercentage = currentPower/maxPower
 	local inversePowerPercentage = math.abs(powerPercentage - 1)
 
@@ -1114,7 +1307,7 @@ local function PetPowerUpdate(orb)
 	if tonumber(string1) == nil then string1 = 0 end
 	orb.font2:SetText(string1)
 	
-	local string = valueFormat(currentPower,true)
+	local string = RC32_ValueText(realPower, currentPower, true)
 	orb.font4:SetText(string)	
 
 	orb.filling2:SetHeight(targetTexHeight)
@@ -1449,7 +1642,7 @@ local function CreatePetOrb(parent,name,size,offsetX,offsetY,monitorFunc)
 			local petType = UnitCreatureFamily("pet")
 			if petType then GameTooltip:AddLine(petType, 0.8, 0.8, 0.8) end
 			local hp, hpMax = UnitHealth("pet"), UnitHealthMax("pet")
-			if hpMax > 0 then GameTooltip:AddLine("HP: "..hp.." / "..hpMax, 0.2, 1, 0.2) end
+			if not RC32_Secret(hp) and not RC32_Secret(hpMax) and hpMax and hpMax > 0 then GameTooltip:AddLine("HP: "..hp.." / "..hpMax, 0.2, 1, 0.2) end
 			GameTooltip:Show()
 		else
 			if pcall(GameTooltip.SetUnit, GameTooltip, "pet") then
@@ -1815,7 +2008,7 @@ function RC32MonitorPowers(frame)
 			powerFrame.fontHolder.animGroup:Stop()
 		end
 	elseif RC32className == "Rogue" or RC32className == "Druid" then
-		local comboPoints = GetComboPoints and GetComboPoints("player","target") or UnitPower("player", 4)
+		local comboPoints = RC32_ComboPoints()
 		if comboPoints > 0 then
 			if not frame.backDrop:IsVisible() then
 				frame.backDrop:Show()
@@ -1954,6 +2147,20 @@ local function CreateSegmentedPowerTracker(parentOrb, numSegments, orbSize)
 end
 
 -- Segmented power tracker monitor function
+-- Class power as a whole number of segments. If the game hides it (Retail /
+-- WoW Forever in combat), work it out from the readable percentage instead.
+local function RC32_SegmentsFrom(value, powerType)
+	if not RC32_Secret(value) then
+		return tonumber(value) or 0
+	end
+	local segs = segmentedPowerTracker and segmentedPowerTracker.numSegments or 5
+	local curve = CurveConstants and CurveConstants.ScaleTo100
+	local pct = RC32_Percent(UnitPowerPercent, "player", powerType, curve)
+	if not pct then return 0 end
+	if not curve then pct = pct * 100 end
+	return math.floor(pct / 100 * segs + 0.5)
+end
+
 function RC32MonitorSegmentedPowers(frame)
 	if not RC32CharacterData.powerFrame or not RC32CharacterData.powerFrame.show then
 		return
@@ -1963,7 +2170,7 @@ function RC32MonitorSegmentedPowers(frame)
 	local numPower = 0
 	
 	if RC32className == "Warlock" then
-		if RC32_IS_MOP_OR_LATER then
+		if RC32_IS_MOP then
 			-- Each MoP Warlock spec has its own secondary resource. Detect by spec
 			-- (reliable) with a max-power probe as fallback. NOTE: Demonic Fury is
 			-- power type 15, not 11 -- the old probe used 11, which is why
@@ -1993,6 +2200,7 @@ function RC32MonitorSegmentedPowers(frame)
 				end
 			end
 		elseif RC32_IS_CATA_OR_LATER then
+			-- Cata, and Retail where every spec uses Soul Shards
 			powerType = RC32_POWER_SOUL_SHARDS
 			numPower = RC32_UnitPower("player", powerType)
 		end
@@ -2007,7 +2215,7 @@ function RC32MonitorSegmentedPowers(frame)
 			numPower = RC32_UnitPower("player", powerType)
 		end
 	elseif RC32className == "Rogue" or RC32className == "Druid" then
-		numPower = GetComboPoints and GetComboPoints("player", "target") or UnitPower("player", 4)
+		numPower = RC32_ComboPoints()
 		segmentedPowerTracker:UpdateSegments(numPower)
 		return
 	elseif RC32className == "Priest" then
@@ -2022,7 +2230,7 @@ function RC32MonitorSegmentedPowers(frame)
 		end
 	end
 	
-	segmentedPowerTracker:UpdateSegments(numPower)
+	segmentedPowerTracker:UpdateSegments(RC32_SegmentsFrom(numPower, powerType))
 end
 
 local function createPowerFrame(file,orb,name,offsetX,offsetY,height,width)
@@ -2537,15 +2745,15 @@ local function checkShapeShiftInfo()
 		local changeOcurred = true
 		if form == 1 then
 			druidFormTable = RC32CharacterData.druidColors.bear
-			previousPowerValue = RC32_UnitPower("player", RC32_POWER_RAGE)
+			previousPowerValue = RC32_Readable(RC32_UnitPower("player", RC32_POWER_RAGE), 0)
 		elseif form == 3 then
 			druidFormTable = RC32CharacterData.druidColors.cat
-			previousPowerValue = RC32_UnitPower("player", RC32_POWER_ENERGY)
+			previousPowerValue = RC32_Readable(RC32_UnitPower("player", RC32_POWER_ENERGY), 0)
 		elseif form == 5 then
 			changeOcurred = false
 		elseif form == 0 then
 			druidFormTable = RC32CharacterData.manaOrb
-			previousPowerValue = RC32_UnitPower("player", RC32_POWER_MANA)
+			previousPowerValue = RC32_Readable(RC32_UnitPower("player", RC32_POWER_MANA), 0)
 		end
 		RC32UpdateOrbColor(manaOrb,druidFormTable.orbColor,druidFormTable.galaxy,druidFormTable.font1,druidFormTable.font2)
 end
@@ -3170,6 +3378,8 @@ do
 				while true do
 					local name, _, _, _, duration, expirationTime, caster = UnitDebuff("target", idx)
 					if not name then break end
+					-- hidden in combat on Retail / WoW Forever: can't tell, show nothing
+					if RC32_Secret(name) or RC32_Secret(caster) or RC32_Secret(expirationTime) then return nil end
 					if name == spellName and caster == "player" then
 						local rem = expirationTime - GetTime()
 						if rem > 0 then
@@ -3480,6 +3690,9 @@ do
 				end
 			end
 			local inRange, checked = UnitInRange(unit)
+			if RC32_Secret(inRange) or RC32_Secret(checked) then
+				return true
+			end
 			if checked then
 				return inRange and true or false
 			end
@@ -3548,6 +3761,9 @@ do
 			-- Player's spell cooldown
 			if rezSpellID then
 				local start, duration, enabled = GetSpellCooldown(rezSpellID)
+				if RC32_Secret(start) or RC32_Secret(duration) then
+					start, duration = nil, nil -- hidden in combat on Retail / WoW Forever
+				end
 				if start and start > 0 and duration and duration > 1.5 then
 					local remaining = (start + duration) - GetTime()
 					if remaining > 0 then
@@ -3572,7 +3788,8 @@ do
 				-- only for a spell you actually KNOW (unknown spell returns nil).
 				if C_Spell and C_Spell.GetSpellCharges then
 					local info = C_Spell.GetSpellCharges(spellID)
-					if type(info) == "table" and info.maxCharges and info.maxCharges > 0 then
+					if type(info) == "table" and not RC32_Secret(info.maxCharges) and not RC32_Secret(info.currentCharges)
+						and info.maxCharges and info.maxCharges > 0 then
 						return info.currentCharges
 					end
 				end
@@ -3813,7 +4030,7 @@ do
 
 			for i = 1, MAX_SLOTS do
 				local unit = prefix..i
-				if i <= scanMax and UnitExists(unit) and UnitIsDeadOrGhost(unit) and UnitIsPlayer(unit) and not UnitIsUnit(unit, "player") then
+				if i <= scanMax and UnitExists(unit) and RC32_True(UnitIsDeadOrGhost(unit)) and UnitIsPlayer(unit) and not UnitIsUnit(unit, "player") then
 					local name = UnitName(unit) or "?"
 					local _, unitClass = UnitClass(unit)
 					setButtonPlayer(buttons[i], name, unitClass)
@@ -3888,7 +4105,9 @@ do
 		pcall(function() ef:RegisterEvent("UNIT_CONNECTION") end)      -- disconnect
 		pcall(function() ef:RegisterEvent("INCOMING_RESURRECT_CHANGED") end)
 		pcall(function() ef:RegisterEvent("UNIT_AURA") end)            -- aura changes on death
-		ef:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+		-- Retail and WoW Forever don't let addons use the combat log (registering
+		-- it is an error there); the OnUpdate scan below catches deaths anyway.
+		pcall(ef.RegisterEvent, ef, "COMBAT_LOG_EVENT_UNFILTERED")
 		ef:SetScript("OnEvent", function(self, event, ...)
 			-- Combat ended: apply any position change we had to skip while locked down.
 			if event == "PLAYER_REGEN_ENABLED" and RC32_battleRezPosPending then
@@ -4420,8 +4639,8 @@ function eventFrame:OnEvent(event,arg1,arg2)
 			petOrb:SetScript("OnUpdate",nil)
 		else
 			petOrb:SetScript("OnUpdate",updatePetValues)
-			previousPetHealth = UnitHealth("pet")
-			previousPetPower = UnitPower("pet")
+			previousPetHealth = RC32_Readable(UnitHealth("pet"), 0)
+			previousPetPower = RC32_Readable(UnitPower("pet"), 0)
 		end
 		RC32_UpdatePetWarning()
 	elseif event == "PLAYER_ENTERING_WORLD" then

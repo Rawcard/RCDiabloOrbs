@@ -2,6 +2,7 @@ package-as: RCDiabloOrbs
 
 ignore:
   - README.md
+  - tools
   - CHANGELOG.md
   - .github
   - .pkgmeta

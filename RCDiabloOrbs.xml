@@ -771,9 +771,9 @@
 				</Anchors>
 				<Scripts>
 					<OnLoad>
-						getglobal(self:GetName().."Text"):SetText("Health")
-						getglobal(self:GetName().."High"):SetText("")
-						getglobal(self:GetName().."Low"):SetText("")
+						_G[self:GetName().."Text"]:SetText("Health")
+						_G[self:GetName().."High"]:SetText("")
+						_G[self:GetName().."Low"]:SetText("")
 						self:SetValueStep(1)
 					</OnLoad>
 					<OnValueChanged>
@@ -835,9 +835,9 @@
 				</Anchors>
 				<Scripts>
 					<OnLoad>
-						getglobal(self:GetName().."Text"):SetText("Mana")
-						getglobal(self:GetName().."High"):SetText("")
-						getglobal(self:GetName().."Low"):SetText("")
+						_G[self:GetName().."Text"]:SetText("Mana")
+						_G[self:GetName().."High"]:SetText("")
+						_G[self:GetName().."Low"]:SetText("")
 						self:SetValueStep(1)
 					</OnLoad>
 					<OnValueChanged>
@@ -899,9 +899,9 @@
 				</Anchors>
 				<Scripts>
 					<OnLoad>
-						getglobal(self:GetName().."Text"):SetText("Pet")
-						getglobal(self:GetName().."High"):SetText("")
-						getglobal(self:GetName().."Low"):SetText("")
+						_G[self:GetName().."Text"]:SetText("Pet")
+						_G[self:GetName().."High"]:SetText("")
+						_G[self:GetName().."Low"]:SetText("")
 						self:SetValueStep(1)
 					</OnLoad>
 					<OnValueChanged>
@@ -980,9 +980,9 @@
 				</Anchors>
 				<Scripts>
 					<OnLoad>
-						getglobal(self:GetName().."Text"):SetText("Rotate")
-						getglobal(self:GetName().."High"):SetText("")
-						getglobal(self:GetName().."Low"):SetText("")
+						_G[self:GetName().."Text"]:SetText("Rotate")
+						_G[self:GetName().."High"]:SetText("")
+						_G[self:GetName().."Low"]:SetText("")
 						self:SetValueStep(5)
 						self:SetMinMaxValues(0, 360)
 						self:SetValue(0)
@@ -1069,9 +1069,9 @@
 				</Anchors>
 				<Scripts>
 					<OnLoad>
-						getglobal(self:GetName().."Text"):SetText("Scale")
-						getglobal(self:GetName().."High"):SetText("")
-						getglobal(self:GetName().."Low"):SetText("")
+						_G[self:GetName().."Text"]:SetText("Scale")
+						_G[self:GetName().."High"]:SetText("")
+						_G[self:GetName().."Low"]:SetText("")
 						self:SetValueStep(1)
 					</OnLoad>
 					<OnValueChanged>
