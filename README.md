@@ -10,7 +10,9 @@ Download the latest zip from [CurseForge](https://www.curseforge.com/wow/addons)
 
 ## Credits and license
 
-RC Diablo Orbs is based on Mistra's D3Orbs by John Rubin ("Mistra"), itself a rewrite of oUF_D3Orbs, whose orbs first appeared in RothUI by Zork (used with the original author's permission). See the license header at the top of `RCDiabloOrbs.lua`: it's MIT-style, and it asks that the copyright holder be told before the code is redistributed.
+Maintained by **Raw Card**, who took the project over with John Rubin's permission after he stopped working on it in 2014.
+
+RC Diablo Orbs is based on Mistra's D3Orbs by John Rubin ("Mistra"), itself a rewrite of oUF_D3Orbs, whose orbs first appeared in RothUI by Zork (used with the original author's permission). The original license header is kept at the top of `RCDiabloOrbs.lua`.
 
 ## Releasing (for the maintainer)
 
