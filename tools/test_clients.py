@@ -29,6 +29,7 @@ CLIENTS = {
     "era": ("RCDiabloOrbs_Vanilla.toc", 11508, CLASSIC9),
     "tbc": ("RCDiabloOrbs_TBC.toc", 20505, CLASSIC9),
     "wrath": ("RCDiabloOrbs_Wrath.toc", 30405, CLASSIC9 + DK),
+    "titan": ("RCDiabloOrbs_Wrath.toc", 38002, CLASSIC9 + DK),
     "cata": ("RCDiabloOrbs_Cata.toc", 40402, CLASSIC9 + DK),
     "mists": ("RCDiabloOrbs.toc", 50504, CLASSIC9 + DK + MONK),
     "retail": ("RCDiabloOrbs_Mainline.toc", 120005, CLASSIC9 + DK + MONK + RETAIL_EXTRA),

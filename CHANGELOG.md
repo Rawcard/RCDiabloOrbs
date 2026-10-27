@@ -1,4 +1,10 @@
-# RC Diablo Orbs 2.1.8.5
+# RC Diablo Orbs 2.1.8.6
+
+- **Wrath Titan Reforged supported** (client 3.80), checked in the Chinese game language.
+- Warlock resources (Soul Shards, Burning Embers, Demonic Fury) are now detected in every game language; they looked spells up by their English names.
+- Release jobs updated to GitHub's newer Node 24 actions (no more Node.js 20 warning).
+
+## RC Diablo Orbs 2.1.8.5
 
 Works on every WoW client: Retail (Midnight), MoP Classic, Cata, Wrath, TBC Anniversary, Classic Era and WoW Forever.
 

@@ -136,7 +136,7 @@ local function RC32_ShowUnitMenu(self, unit)
 end
 
 
-RC32_ADDON_VERSION = "2.1.8.5"
+RC32_ADDON_VERSION = "2.1.8.6"
 
 -- Safe dropdown toggle function (fixes ElvUI compatibility issue)
 -- ElvUI skinning can interfere with dropdown button creation, causing nil errors
@@ -551,8 +551,10 @@ local function CreateWelcomePopup()
 	infoText:SetSpacing(3)
 	infoText:SetText(
 		"|cFFFFFFFFWelcome to RC Diablo Orbs v" .. RC32_ADDON_VERSION .. "!|r\n\n" ..
-		"|cFFFF4444=== WHAT'S NEW (v2.1.8.5) ===|r\n\n" ..
+		"|cFFFF4444=== WHAT'S NEW (v2.1.8.6) ===|r\n\n" ..
 		"|cFF00FF00Works on every WoW client|r\n" ..
+		"  • Now also Wrath Titan Reforged\n" ..
+		"  • Warlock resources detected in every game language\n" ..
 		"  • Retail (Midnight), MoP, Cata, Wrath, TBC, Classic Era\n" ..
 		"    and WoW Forever\n" ..
 		"  • Retail & Forever: orbs keep working in combat, where\n" ..
@@ -1868,17 +1870,25 @@ function RC32MonitorPowers(frame)
 			return
 		end
 		local maxResource = 0
-		local usable, nomana = IsUsableSpell("Metamorphosis")
+		-- by spell ID (Cata and MoP versions), so it works in every game language
+		local function usableAny(...)
+			for i = 1, select("#", ...) do
+				local u, n = IsUsableSpell((select(i, ...)))
+				if u or n then return u, n end
+			end
+			return false, false
+		end
+		local usable, nomana = usableAny(47241, 103958) -- Metamorphosis
 		if usable or (not usable and nomana) then
 			powerType = RC32_IS_MOP_OR_LATER and 15 or nil
 			maxResource = 1000
 		end
-		usable, nomana = IsUsableSpell("Chaos Bolt")
+		usable, nomana = usableAny(50796, 116858) -- Chaos Bolt
 		if usable or (not usable and nomana) then
 			powerType = RC32_IS_MOP_OR_LATER and 14 or nil
 			maxResource = 3
 		end
-		usable, nomana = IsUsableSpell("Soulburn")
+		usable, nomana = usableAny(74434) -- Soulburn
 		if usable or (not usable and nomana) then
 			powerType = RC32_POWER_SOUL_SHARDS
 			maxResource = 3

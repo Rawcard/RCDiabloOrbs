@@ -337,6 +337,13 @@ function GetTalentTabInfo(i) return "Tree" .. i, nil, 0 end
 -- ======================================================== flavor tweaks
 CLASS_NAME = ({ WARRIOR = "Warrior", PALADIN = "Paladin", HUNTER = "Hunter", ROGUE = "Rogue", PRIEST = "Priest", DEATHKNIGHT = "Death Knight",
 	SHAMAN = "Shaman", MAGE = "Mage", WARLOCK = "Warlock", MONK = "Monk", DRUID = "Druid", DEMONHUNTER = "Demon Hunter", EVOKER = "Evoker" })[CLASS_FILE]
+-- Titan Reforged is the Chinese Wrath client: test it in Chinese
+if FLAVOR == "titan" then
+	function GetLocale() return "zhCN" end
+	CLASS_NAME = ({ WARRIOR = "战士", PALADIN = "圣骑士", HUNTER = "猎人", ROGUE = "潜行者", PRIEST = "牧师", DEATHKNIGHT = "死亡骑士",
+		SHAMAN = "萨满祭司", MAGE = "法师", WARLOCK = "术士", DRUID = "德鲁伊" })[CLASS_FILE]
+end
+
 SECRET_CLIENT = (FLAVOR == "retail" or FLAVOR == "forever")
 if SECRET_CLIENT then
 	-- removed on Retail (11.0+) and so on WoW Forever
@@ -370,7 +377,7 @@ end
 if FLAVOR == "era" or FLAVOR == "tbc" or FLAVOR == "forever" then
 	GetSpecialization, GetSpecializationInfo, GetSpecializationInfoByID, GetInspectSpecialization = nil, nil, nil, nil
 end
-if FLAVOR == "wrath" or FLAVOR == "cata" then
+if FLAVOR == "wrath" or FLAVOR == "titan" or FLAVOR == "cata" then
 	GetSpecialization, GetSpecializationInfo, GetSpecializationInfoByID = nil, nil, nil
 	function GetPrimaryTalentTree() return 1 end
 end
@@ -397,7 +404,14 @@ if FLAVOR == "retail" then ABSENT.GetNumTalentTabs = true; ABSENT.GetTalentTabIn
 MISSING = {}
 setmetatable(_G, { __index = function(t, k)
 	if rawtype(k) ~= "string" then return nil end
-	if ABSENT[k] or (XMLNAMES and XMLNAMES[k]) or k:match("^RC32") or k:match("^rc32") or k:match("^SLASH_") or k:match("^[A-Z_0-9]+$") or k:match("DB$") then return nil end
+	-- an unknown C_ namespace: a table of no-op functions
+	if k:match("^C_%u") and not ABSENT[k] then
+		MISSING[k] = true
+		local ns = setmetatable({}, { __index = function() return function() return nil end end })
+		rawset(t, k, ns)
+		return ns
+	end
+	if ABSENT[k] or (rawget(_G, "XMLNAMES") and rawget(_G, "XMLNAMES")[k]) or k:match("^RC32") or k:match("^rc32") or k:match("^SLASH_") or k:match("^[A-Z_0-9]+$") or k:match("DB$") then return nil end
 	-- names that look like frames (the addon's own, created later or never) stay nil
 	for _, suffix in ipairs({ "Button", "Slider", "Frame", "Label", "Text", "Dropdown", "DropDown", "Backdrop", "Box", "Panel", "Bar", "Orb", "Icon" }) do
 		if k:sub(-#suffix) == suffix then return nil end
