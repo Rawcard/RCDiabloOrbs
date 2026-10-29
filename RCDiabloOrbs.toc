@@ -1,9 +1,9 @@
 ## Title: RC Diablo Orbs
-## Version: 2.1.8.6
+## Version: 2.1.8.7
 ## Author: Raw Card
 ## X-Original-Author: John Rubin (Mistra)
 ## X-Curse-Project-ID: 1378641
-## Interface: 50504
+## Interface: 50504, 16001
 ## Interface-Mainline: 120001, 120005, 120105
 ## SavedVariablesPerCharacter: RC32CharacterData
 ## SavedVariables: RC32MiniMapButtonPosition, RC32AccountData

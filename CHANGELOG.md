@@ -1,4 +1,8 @@
-# RC Diablo Orbs 2.1.8.6
+# RC Diablo Orbs 2.1.8.7
+
+- **WoW Forever** is now listed on CurseForge, so the CurseForge app offers it to Forever players. (The addon already worked on Forever since 2.1.8.5.)
+
+## RC Diablo Orbs 2.1.8.6
 
 - **Wrath Titan Reforged supported** (client 3.80), checked in the Chinese game language.
 - Warlock resources (Soul Shards, Burning Embers, Demonic Fury) are now detected in every game language; they looked spells up by their English names.
