@@ -1078,12 +1078,123 @@ local function RC32_Readable(v, fallback)
 	return v
 end
 
+-- Hidden health / power (Retail and WoW Forever in combat): addon code can't do
+-- math on the values, and the percentage call can be refused too, so the fill
+-- is drawn by a StatusBar instead, which takes hidden values as they are. It
+-- uses the orb's own fill texture and color and crops it from the bottom up,
+-- the same way the normal fill does.
+local function RC32_RawValues(unit, power, powerType)
+	local cur, mx
+	if power then
+		if powerType then
+			cur, mx = UnitPower(unit, powerType), UnitPowerMax(unit, powerType)
+		else
+			cur, mx = UnitPower(unit), UnitPowerMax(unit)
+		end
+	else
+		cur, mx = UnitHealth(unit), UnitHealthMax(unit)
+	end
+	return cur, mx, RC32_Secret(cur) or RC32_Secret(mx)
+end
+
+-- the orb percentage: a readable number, a hidden one, or nil if refused
+local function RC32_PercentAny(unit, power)
+	local curve = CurveConstants and CurveConstants.ScaleTo100
+	local ok, pct
+	if power then
+		if not UnitPowerPercent then return nil end
+		ok, pct = pcall(UnitPowerPercent, unit, UnitPowerType and UnitPowerType(unit), curve)
+	else
+		if not UnitHealthPercent then return nil end
+		ok, pct = pcall(UnitHealthPercent, unit, false, curve)
+	end
+	if not ok or pct == nil then return nil end
+	if not RC32_Secret(pct) then
+		if type(pct) ~= "number" then return nil end
+		if not curve then pct = pct * 100 end
+	end
+	return pct
+end
+
+local function RC32_PercentText(fs, pct)
+	if pct == nil then fs:SetText("") return end
+	if RC32_Secret(pct) then
+		local ok, s = pcall(string.format, "%d", pct)
+		if ok and s then fs:SetText(s) else fs:SetText("") end
+		return
+	end
+	fs:SetText(math.floor(pct))
+end
+
+-- draws tex's fill with a StatusBar; size is the fill's full width and height
+local function RC32_SecretFill(orb, key, tex, x, y, point, w, h, cur, mx)
+	local bar = orb[key]
+	if not bar then
+		bar = CreateFrame("StatusBar", nil, orb)
+		bar:EnableMouse(false)
+		if bar.SetOrientation then bar:SetOrientation("VERTICAL") end
+		bar:SetFrameLevel(orb:GetFrameLevel())
+		orb[key] = bar
+	end
+	bar:ClearAllPoints()
+	bar:SetPoint(point, orb, point, x, y)
+	bar:SetSize(w, h)
+	local file = tex:GetTexture()
+	if bar.rc32file ~= file then
+		bar:SetStatusBarTexture(file)
+		bar.rc32file = file
+		local st = bar:GetStatusBarTexture()
+		if st and st.SetDrawLayer then st:SetDrawLayer("BACKGROUND") end
+	end
+	local st = bar:GetStatusBarTexture()
+	if st then st:SetVertexColor(tex:GetVertexColor()) end
+	bar:SetMinMaxValues(0, mx)
+	bar:SetValue(cur)
+	bar:Show()
+	tex:Hide()
+end
+
+-- back to the normal fill
+local function RC32_PlainFill(orb, key, tex)
+	if orb[key] and orb[key]:IsShown() then orb[key]:Hide() end
+	if not tex:IsShown() then tex:Show() end
+end
+
+local function RC32_GalaxyAlpha(orb, pct, mul)
+	local a = mul
+	if pct ~= nil and not RC32_Secret(pct) then a = math.max(0, math.min(1, pct / 100)) * mul end
+	if orb.galaxy1 then orb.galaxy1:SetAlpha(a) end
+	if orb.galaxy2 then orb.galaxy2:SetAlpha(a) end
+	if orb.galaxy3 then orb.galaxy3:SetAlpha(a) end
+end
+
+-- big orbs (health and mana): true when it drew the hidden values
+local function RC32_DrawHidden(orb, unit, power)
+	local cur, mx, hidden = RC32_RawValues(unit, power)
+	if not hidden then
+		RC32_PlainFill(orb, "rc32bar", orb.filling)
+		return false
+	end
+	local w = orb.filling:GetWidth()
+	RC32_SecretFill(orb, "rc32bar", orb.filling, 3, 3, "BOTTOMLEFT", w, w, cur, mx)
+	local pct = RC32_PercentAny(unit, power)
+	RC32_PercentText(orb.font1, pct)
+	orb.font2:SetText(RC32_ValueText(cur, cur))
+	if RC32_IsDead(unit) then orb.font2:SetText("DEAD :'(") end
+	RC32_GalaxyAlpha(orb, pct, 1)
+	return true
+end
+
 local previousHealthValue = RC32_Readable(UnitHealth("player"), 0)
 local lastHealthScale
 local function monitorHealth(orb)
 	local unitHealthString = "player"
 	if vehicleInUse == 1 then
 		unitHealthString = "vehicle"
+	end
+	if RC32_DrawHidden(orb, unitHealthString, false) then
+		lastHealthScale = nil
+		return
 	end
 	local currentHealth, maxHealth, realHealth = RC32_ReadHealth(unitHealthString)
 	if not maxHealth or maxHealth == 0 then maxHealth = 1 end
@@ -1149,6 +1260,10 @@ local function monitorPower(orb)
 	if vehicleInUse == 1 then
 		unitPowerString = "vehicle"
 	end
+	if RC32_DrawHidden(orb, unitPowerString, true) then
+		lastPowerScale = nil
+		return
+	end
 	local currentPower, maxPower, realPower = RC32_ReadPower(unitPowerString)
 	if not maxPower or maxPower == 0 then maxPower = 1 end
 	if not currentPower then currentPower = 1 end
@@ -1210,6 +1325,17 @@ local previousPetHealth = RC32_Readable(UnitHealth("pet"), 0)
 local lastPetHealthScale
 local function PetHealthUpdate(orb)
 	local unitHealthString = "pet"
+	local hcur, hmx, hidden = RC32_RawValues("pet", false)
+	if hidden then
+		RC32_SecretFill(orb, "rc32bar1", orb.filling1, 3, 0, "BOTTOMLEFT", orb.filling1:GetWidth(), 85 * orb:GetScale(), hcur, hmx)
+		local pct = RC32_PercentAny("pet", false)
+		RC32_PercentText(orb.font1, pct)
+		orb.font3:SetText(RC32_ValueText(hcur, hcur, true))
+		RC32_GalaxyAlpha(orb, pct, 0.2)
+		lastPetHealthScale = nil
+		return
+	end
+	RC32_PlainFill(orb, "rc32bar1", orb.filling1)
 	local currentHealth, maxHealth, realHealth = RC32_ReadHealth(unitHealthString)
 	if not maxHealth or maxHealth == 0 then maxHealth = 1 end
 	if not currentHealth then currentHealth = 0 end
@@ -1266,6 +1392,15 @@ local previousPetPower = RC32_Readable(UnitPower("pet"), 0)
 local lastPetPowerScale
 local function PetPowerUpdate(orb)
 	local unitPowerString = "pet"
+	local pcur, pmx, phidden = RC32_RawValues("pet", true)
+	if phidden then
+		RC32_SecretFill(orb, "rc32bar2", orb.filling2, -3, 0, "BOTTOMRIGHT", orb.filling2:GetWidth(), 85 * orb:GetScale(), pcur, pmx)
+		RC32_PercentText(orb.font2, RC32_PercentAny("pet", true))
+		orb.font4:SetText(RC32_ValueText(pcur, pcur, true))
+		lastPetPowerScale = nil
+		return
+	end
+	RC32_PlainFill(orb, "rc32bar2", orb.filling2)
 	local currentPower, maxPower, realPower = RC32_ReadPower(unitPowerString)
 	if not maxPower or maxPower == 0 then maxPower = 1 end
 	if not currentPower then currentPower = 0 end

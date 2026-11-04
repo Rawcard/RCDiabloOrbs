@@ -239,10 +239,32 @@ for t = 1, 60 do
 	if t == 35 then TARGET = true; fire("PLAYER_TARGET_CHANGED") end
 	update(0.1)
 end
+-- in combat with hidden values the orbs must still follow health and power
+if SECRET_CLIENT then
+	for _, o in ipairs({ { RC32_HealthOrb, HEALTH, "health" }, { RC32_ManaOrb, POWER, "power" } }) do
+		local orb, want, what = o[1], o[2], o[3]
+		local bar = orb and orb.rc32bar
+		if not (bar and bar.shown) then error(FLAVOR .. ": the " .. what .. " orb doesn't show hidden values in combat") end
+		if orb.filling.shown then error(FLAVOR .. ": the " .. what .. " orb shows both fills") end
+		if SECRET_REAL[bar.value] ~= want then
+			error(FLAVOR .. ": the " .. what .. " orb shows " .. tostring(SECRET_REAL[bar.value]) .. ", should be " .. want)
+		end
+	end
+end
 COMBAT = false
 fire("PLAYER_REGEN_ENABLED")
 fire("PLAYER_LEAVE_COMBAT")
-for i = 1, 10 do NOW = NOW + 0.1; update(0.1) end
+for i = 1, 120 do NOW = NOW + 0.1; update(0.1) end
+-- out of combat: back to the normal fill, at the right height
+do
+	local orb = RC32_HealthOrb
+	if orb.rc32bar and orb.rc32bar.shown then error(FLAVOR .. ": the hidden-value fill stayed up after combat") end
+	if not orb.filling.shown then error(FLAVOR .. ": the health orb fill is hidden after combat") end
+	local want = HEALTH / HEALTHMAX * orb.filling:GetWidth()
+	if math.abs(orb.filling:GetHeight() - want) > 1 then
+		error(FLAVOR .. ": health orb fill is " .. orb.filling:GetHeight() .. " high, should be " .. want)
+	end
+end
 
 -- the options window and every slash command it registered
 if RC32GUI then

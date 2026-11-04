@@ -54,7 +54,12 @@ local function perm(name)
 		SetChecked = function(s, v) s.checked = v end,
 		GetValue = function(s) return s.value or 0 end,
 		SetValue = function(s, v) s.value = v end,
-		GetMinMaxValues = function() return 0, 100 end,
+		GetMinMaxValues = function(s) return s.min or 0, s.max or 100 end,
+		SetMinMaxValues = function(s, a, b) s.min, s.max = a, b end,
+		GetStatusBarTexture = function(s) s.sbtex = s.sbtex or perm("statusbartexture"); return s.sbtex end,
+		SetStatusBarTexture = function(s, t) s.sbfile = t end,
+		GetVertexColor = function(s) return s.r or 1, s.g or 1, s.b or 1, s.a or 1 end,
+		SetVertexColor = function(s, r, g, b, a) s.r, s.g, s.b, s.a = r, g, b, a end,
 		GetTexture = function(s) return s.tex end,
 		SetTexture = function(s, t) s.tex = t end,
 		GetVerticalScroll = function() return 0 end,
@@ -231,9 +236,12 @@ SECRET.__concat = function() return NEWSECRET("") end
 SECRET.__tostring = function() return "<secret>" end
 SECRET.__metatable = "secret"
 local SECRET_TYPE = setmetatable({}, { __mode = "k" })
+-- the real value behind a secret, for the tests only (addons can't see it)
+SECRET_REAL = setmetatable({}, { __mode = "k" })
 local function secret(v)
 	local o = setmetatable({}, SECRET)
 	SECRET_TYPE[o] = rawtype(v)
+	SECRET_REAL[o] = v
 	return o
 end
 NEWSECRET = secret
@@ -353,16 +361,23 @@ if SECRET_CLIENT then
 	end
 	-- readable percentages for display (secret-safe)
 	CurveConstants = { ScaleTo100 = 1, Reverse = 2 }
-	function UnitHealthPercent(u, predicted, curve)
-		local h, m = (u == "player" and HEALTH or 3000), (u == "player" and HEALTHMAX or 6000)
-		local p = h / m
-		if curve == CurveConstants.ScaleTo100 then return p * 100 end
+	-- In combat the percentage calls aren't dependable for addons: WoW Forever
+	-- refuses them (PERCENT_MODE "refuse") and Retail hides the result ("secret").
+	PERCENT_MODE = (FLAVOR == "forever") and "refuse" or "secret"
+	local function pctOut(p, curve)
+		if curve == CurveConstants.ScaleTo100 then p = p * 100 end
+		if COMBAT then
+			if PERCENT_MODE == "refuse" then error(FLAVOR .. ": UnitHealthPercent is not allowed for addons here", 3) end
+			return secret(p)
+		end
 		return p
 	end
+	function UnitHealthPercent(u, predicted, curve)
+		local h, m = (u == "player" and HEALTH or 3000), (u == "player" and HEALTHMAX or 6000)
+		return pctOut(h / m, curve)
+	end
 	function UnitPowerPercent(u, t, curve)
-		local p = POWER / POWERMAX
-		if curve == CurveConstants.ScaleTo100 then return p * 100 end
-		return p
+		return pctOut(POWER / POWERMAX, curve)
 	end
 	function AbbreviateNumbers(v) if isSecret(v) then return "1.2K" end return tostring(v) end
 	C_StringUtil = { TruncateWhenZero = function(v) if isSecret(v) then return secret("") end return tostring(v) end }

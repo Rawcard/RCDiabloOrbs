@@ -1,4 +1,8 @@
-# RC Diablo Orbs 2.1.8.7
+# RC Diablo Orbs 2.1.8.8
+
+- **WoW Forever and Retail:** the orbs now go down with your health and mana in combat. Before, they could stay full in a fight while the number on them dropped, because the game hides exact health and power from addons in combat. The orbs now let the game draw the fill from the hidden values, so it always matches. The pet orb works the same way.
+
+## RC Diablo Orbs 2.1.8.7
 
 - **WoW Forever** is now listed on CurseForge, so the CurseForge app offers it to Forever players. (The addon already worked on Forever since 2.1.8.5.)
 
