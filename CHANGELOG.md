@@ -1,4 +1,8 @@
-# RC Diablo Orbs 2.1.8.8
+# RC Diablo Orbs 2.1.8.9
+
+- **WoW Forever:** fixed the "PlayerModel:SetModel(): Invalid model file" error at login. The orb glow uses a spell effect that Forever's game files don't have, so the glow is now skipped there instead of erroring. The other clients keep the glow.
+
+## RC Diablo Orbs 2.1.8.8
 
 - **WoW Forever and Retail:** the orbs now go down with your health and mana in combat. Before, they could stay full in a fight while the number on them dropped, because the game hides exact health and power from addons in combat. The orbs now let the game draw the fill from the hidden values, so it always matches. The pet orb works the same way.
 - **Every client:** the swirls now only show over the filled part of the orb. The empty top stays dark, so you can see your health or mana level at a glance.

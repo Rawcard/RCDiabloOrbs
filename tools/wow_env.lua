@@ -99,6 +99,16 @@ function CreateFrame(kind, gname, parent, template)
 		self.events[ev] = true
 	end
 	f.RegisterUnitEvent = f.RegisterEvent
+	if kind == "PlayerModel" then
+		-- WoW Forever doesn't have the old spell effect models
+		f.SetModel = function(self, file)
+			if FLAVOR == "forever" and type(file) == "string" and file:lower():find("radiationfog") then
+				error("PlayerModel:SetModel(): Invalid model file: FileData ID 0")
+			end
+			self.model = file
+		end
+		f.GetModelFileID = function(self) return self.model and 1 or nil end
+	end
 	f.UnregisterEvent = function(self, ev) if self.events then self.events[ev] = nil end end
 	f.UnregisterAllEvents = function(self) self.events = {} end
 	f.IsEventRegistered = function(self, ev) return self.events and self.events[ev] or false end

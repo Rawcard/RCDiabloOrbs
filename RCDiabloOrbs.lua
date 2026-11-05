@@ -1540,17 +1540,42 @@ local function CreateGalaxy(orb, file, duration,size,x,y)
 	return galaxy
 end 
 
+-- The glow is a spell effect model. Some clients (WoW Forever) don't have the
+-- file, and SetModel then errors every time; the glow is left out there.
+local glowMissing = {}
+local function RC32_SetGlowModel(glow)
+	local entry = orbClassColors[charClassNumber] or orbClassColors[0]
+	local file = entry and entry.animation
+	if not file or glowMissing[file] then
+		glow:SetAlpha(0)
+		return false
+	end
+	local ok = pcall(glow.SetModel, glow, file)
+	if ok and glow.GetModelFileID then
+		local okID, id = pcall(glow.GetModelFileID, glow)
+		if okID and (id == nil or id == 0) then ok = false end
+	end
+	if not ok then
+		glowMissing[file] = true
+		pcall(glow.ClearModel, glow)
+		glow:SetAlpha(0)
+		return false
+	end
+	glow:SetAlpha(1)
+	return true
+end
+
 local function CreateGlow(orb)
 	local glow = CreateFrame("PlayerModel",nil, orb)
 	glow:SetFrameStrata("BACKGROUND")
 	glow:SetFrameLevel(5)
 	glow:SetAllPoints(orb)
-	glow:SetModel(orbClassColors[charClassNumber].animation)
-	glow:SetAlpha(1)
+	RC32_SetGlowModel(glow)
 	glow:SetScript("OnShow",function()
-		glow:SetModel(orbClassColors[charClassNumber].animation)
-		glow:SetModelScale(1)
-		glow:SetPosition(0,0,0)
+		if RC32_SetGlowModel(glow) then
+			pcall(glow.SetModelScale, glow, 1)
+			pcall(glow.SetPosition, glow, 0, 0, 0)
+		end
 	end)
 	orb.glow = glow
 end
