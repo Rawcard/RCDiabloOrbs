@@ -1,6 +1,7 @@
 # RC Diablo Orbs 2.1.8.8
 
 - **WoW Forever and Retail:** the orbs now go down with your health and mana in combat. Before, they could stay full in a fight while the number on them dropped, because the game hides exact health and power from addons in combat. The orbs now let the game draw the fill from the hidden values, so it always matches. The pet orb works the same way.
+- **Every client:** the swirls now only show over the filled part of the orb. The empty top stays dark, so you can see your health or mana level at a glance.
 
 ## RC Diablo Orbs 2.1.8.7
 

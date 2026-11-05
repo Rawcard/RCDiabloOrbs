@@ -1168,6 +1168,59 @@ local function RC32_GalaxyAlpha(orb, pct, mul)
 	if orb.galaxy3 then orb.galaxy3:SetAlpha(a) end
 end
 
+-- The swirls only show over the filled part of the orb, so the empty top stays
+-- dark and the level line is easy to see. They sit in a frame that clips them,
+-- from the bottom of the orb up to the top of the fill.
+local function RC32_ClipGalaxies(orb)
+	if orb.galaxyClip or not orb.galaxy1 then return end
+	local clip = CreateFrame("Frame", nil, orb)
+	if not clip.SetClipsChildren then return end -- very old clients: unclipped
+	clip:SetClipsChildren(true)
+	clip:EnableMouse(false)
+	clip:SetFrameLevel(math.max(1, (orb.galaxy1:GetFrameLevel() or 4) - 1))
+	clip:SetPoint("BOTTOMLEFT", orb, "BOTTOMLEFT", 0, 3)
+	clip:SetPoint("BOTTOMRIGHT", orb, "BOTTOMRIGHT", 0, 3)
+	clip:SetHeight(orb:GetHeight())
+	for _, g in ipairs({ orb.galaxy1, orb.galaxy2, orb.galaxy3 }) do
+		if g then
+			local level = g:GetFrameLevel()
+			g:SetParent(clip)
+			g:ClearAllPoints()
+			g:SetPoint("CENTER", orb, "CENTER", 0, 0)
+			g:SetFrameLevel(level)
+		end
+	end
+	orb.galaxyClip = clip
+end
+
+-- clip the swirls to a fill of height h (a readable number)
+local function RC32_ClipHeight(orb, h)
+	local clip = orb.galaxyClip
+	if not clip then return end
+	if clip.rc32bar then
+		clip:ClearAllPoints()
+		clip:SetPoint("BOTTOMLEFT", orb, "BOTTOMLEFT", 0, 3)
+		clip:SetPoint("BOTTOMRIGHT", orb, "BOTTOMRIGHT", 0, 3)
+		clip.rc32bar = nil
+	end
+	clip:SetHeight(math.max(1, h))
+end
+
+-- clip the swirls to the top of a StatusBar fill (works with hidden values:
+-- the game places it, the addon never reads the height)
+local function RC32_ClipToBar(orb, bar)
+	local clip = orb.galaxyClip
+	local st = bar and bar:GetStatusBarTexture()
+	if not clip or not st then return end
+	if clip.rc32bar ~= bar then
+		clip:ClearAllPoints()
+		clip:SetPoint("BOTTOMLEFT", orb, "BOTTOMLEFT", 0, 3)
+		clip:SetPoint("BOTTOMRIGHT", orb, "BOTTOMRIGHT", 0, 3)
+		clip:SetPoint("TOP", st, "TOP", 0, 0)
+		clip.rc32bar = bar
+	end
+end
+
 -- big orbs (health and mana): true when it drew the hidden values
 local function RC32_DrawHidden(orb, unit, power)
 	local cur, mx, hidden = RC32_RawValues(unit, power)
@@ -1177,6 +1230,7 @@ local function RC32_DrawHidden(orb, unit, power)
 	end
 	local w = orb.filling:GetWidth()
 	RC32_SecretFill(orb, "rc32bar", orb.filling, 3, 3, "BOTTOMLEFT", w, w, cur, mx)
+	RC32_ClipToBar(orb, orb.rc32bar)
 	local pct = RC32_PercentAny(unit, power)
 	RC32_PercentText(orb.font1, pct)
 	orb.font2:SetText(RC32_ValueText(cur, cur))
@@ -1247,6 +1301,7 @@ local function monitorHealth(orb)
 	end
 
 	orb.filling:SetHeight(targetTexHeight)
+	RC32_ClipHeight(orb, targetTexHeight)
 	orb.filling:SetTexCoord(0,1,math.abs(newDisplayPercentage - 1),1)
 	orb.galaxy1:SetAlpha(newDisplayPercentage)
 	orb.galaxy2:SetAlpha(newDisplayPercentage)
@@ -1315,6 +1370,7 @@ local function monitorPower(orb)
 	end
 
 	orb.filling:SetHeight(targetTexHeight)
+	RC32_ClipHeight(orb, targetTexHeight)
 	orb.filling:SetTexCoord(0,1,math.abs(newDisplayPercentage-1),1)
 	orb.galaxy1:SetAlpha(newDisplayPercentage)
 	orb.galaxy2:SetAlpha(newDisplayPercentage)
@@ -1531,6 +1587,7 @@ local function CreateOrb(parent,name,size,fillTexture,galaxyTexture,offsetX,offs
 	orb.galaxy2 = CreateGalaxy(orb,images..galaxyTexture.."2.tga", newRand,defaultOrbSize-5,0,0)
 	newRand = math.random(18,27)
 	orb.galaxy3 = CreateGalaxy(orb,images..galaxyTexture.."3.tga", newRand,defaultOrbSize-5,0,0)
+	RC32_ClipGalaxies(orb)
 	orb:SetScript("OnUpdate",monitorFunc)
 	orb.fontHolder = CreateFrame("FRAME",nil,orb)
 	orb.fontHolder:SetFrameStrata("LOW")

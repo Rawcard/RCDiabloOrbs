@@ -246,6 +246,8 @@ if SECRET_CLIENT then
 		local bar = orb and orb.rc32bar
 		if not (bar and bar.shown) then error(FLAVOR .. ": the " .. what .. " orb doesn't show hidden values in combat") end
 		if orb.filling.shown then error(FLAVOR .. ": the " .. what .. " orb shows both fills") end
+		local clip = orb.galaxyClip
+		if not clip or clip.rc32bar ~= bar then error(FLAVOR .. ": the " .. what .. " orb swirls aren't clipped to the fill in combat") end
 		if SECRET_REAL[bar.value] ~= want then
 			error(FLAVOR .. ": the " .. what .. " orb shows " .. tostring(SECRET_REAL[bar.value]) .. ", should be " .. want)
 		end
@@ -263,6 +265,11 @@ do
 	local want = HEALTH / HEALTHMAX * orb.filling:GetWidth()
 	if math.abs(orb.filling:GetHeight() - want) > 1 then
 		error(FLAVOR .. ": health orb fill is " .. orb.filling:GetHeight() .. " high, should be " .. want)
+	end
+	local clip = orb.galaxyClip
+	if not clip then error(FLAVOR .. ": the health orb swirls aren't clipped") end
+	if clip.rc32bar or math.abs(clip:GetHeight() - orb.filling:GetHeight()) > 0.01 then
+		error(FLAVOR .. ": the health orb swirls are " .. clip:GetHeight() .. " high, the fill " .. orb.filling:GetHeight())
 	end
 end
 
