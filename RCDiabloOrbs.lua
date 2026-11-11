@@ -42,7 +42,13 @@ local IsUsableSpell = IsUsableSpell or function(spell)
 end
 local UnitDebuff = UnitDebuff or function(unit, index, filter)
 	if C_UnitAuras and C_UnitAuras.GetDebuffDataByIndex then
-		local a = C_UnitAuras.GetDebuffDataByIndex(unit, index, filter)
+		-- In combat WoW Forever / Retail can refuse aura reads outright ("Auras
+		-- cannot be accessed when secret") instead of handing back hidden values.
+		-- Treat that as "no debuff to show" rather than an error.
+		local ok, a = pcall(C_UnitAuras.GetDebuffDataByIndex, unit, index, filter)
+		if not ok or RC32_Secret(a) then
+			return nil
+		end
 		if a then
 			return a.name, a.icon, a.applications, a.dispelName, a.duration, a.expirationTime, a.sourceUnit, nil, nil, a.spellId
 		end

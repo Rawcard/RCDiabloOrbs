@@ -340,7 +340,12 @@ C_Spell = {
 }
 C_UnitAuras = {
 	GetAuraDataByIndex = function() return nil end,
-	GetDebuffDataByIndex = function() return nil end,
+	-- Forever / Retail in combat: reading a target's auras can be refused outright
+	GetDebuffDataByIndex = function(unit, i)
+		if SECRET_CLIENT and COMBAT and TARGET then error("GetDebuffDataByIndex(): Auras cannot be accessed when secret while tainted by 'RCDiabloOrbs'") end
+		if TARGET and i == 1 then return { name = "Shadow Word: Pain", icon = 136207, applications = 0, duration = 18, expirationTime = NOW + 10, sourceUnit = "player", spellId = 589 } end
+		return nil
+	end,
 	GetBuffDataByIndex = function() return nil end,
 	GetPlayerAuraBySpellID = function() return nil end,
 }
