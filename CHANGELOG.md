@@ -1,4 +1,8 @@
-# RC Diablo Orbs 2.1.8.9
+# RC Diablo Orbs 2.1.9.0
+
+- **WoW Forever and Retail:** fixed the "GetDebuffDataByIndex(): Auras cannot be accessed when secret" error spam in combat. The game now refuses to let addons read your target's debuffs during a fight; the DoT tracker shows nothing then instead of erroring, and picks up again out of combat.
+
+## RC Diablo Orbs 2.1.8.9
 
 - **WoW Forever:** fixed the "PlayerModel:SetModel(): Invalid model file" error at login. The orb glow uses a spell effect that Forever's game files don't have, so the glow is now skipped there instead of erroring. The other clients keep the glow.
 
