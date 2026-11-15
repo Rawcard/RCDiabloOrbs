@@ -257,6 +257,16 @@ COMBAT = false
 fire("PLAYER_REGEN_ENABLED")
 fire("PLAYER_LEAVE_COMBAT")
 for i = 1, 120 do NOW = NOW + 0.1; update(0.1) end
+-- the mana orb's number is the percentage (it read 0 when the curve was
+-- passed as UnitPowerPercent's 3rd argument instead of its 4th)
+do
+	local fs = RC32_ManaOrb and RC32_ManaOrb.font1
+	local want = tostring(math.floor(POWER / POWERMAX * 100))
+	if fs and fs.text and tostring(fs.text) ~= "" and tostring(fs.text) ~= want then
+		error(FLAVOR .. ": mana orb says " .. tostring(fs.text) .. ", should be " .. want)
+	end
+	MANA_TEXT = fs and fs.text
+end
 -- out of combat: back to the normal fill, at the right height
 do
 	local orb = RC32_HealthOrb

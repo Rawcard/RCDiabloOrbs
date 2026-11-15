@@ -231,7 +231,7 @@ function RC32_UnitPower(unit, powerType)
 	local curve = CurveConstants and CurveConstants.ScaleTo100
 	local ok, pct = false, nil
 	if UnitPowerPercent then
-		ok, pct = pcall(UnitPowerPercent, unit, powerType, curve)
+		ok, pct = pcall(UnitPowerPercent, unit, powerType, false, curve)
 	end
 	if not ok or type(pct) ~= "number" or RC32_Secret(pct) then
 		return 0
@@ -248,7 +248,7 @@ function RC32_ComboPoints()
 		local mx = RC32_powerMaxSeen["player:4"] or 5
 		local curve = CurveConstants and CurveConstants.ScaleTo100
 		local ok, pct = false, nil
-		if UnitPowerPercent then ok, pct = pcall(UnitPowerPercent, "player", 4, curve) end
+		if UnitPowerPercent then ok, pct = pcall(UnitPowerPercent, "player", 4, false, curve) end
 		if not ok or type(pct) ~= "number" or RC32_Secret(pct) then return 0 end
 		if not curve then pct = pct * 100 end
 		return math.floor(pct / 100 * mx + 0.5)
@@ -1057,7 +1057,7 @@ function RC32_ReadPower(unit, powerType)
 	end
 	if RC32_Secret(cur) or RC32_Secret(mx) then
 		local curve = CurveConstants and CurveConstants.ScaleTo100
-		local pct = RC32_Percent(UnitPowerPercent, unit, powerType or (UnitPowerType and UnitPowerType(unit)), curve)
+		local pct = RC32_Percent(UnitPowerPercent, unit, powerType or (UnitPowerType and UnitPowerType(unit)), false, curve)
 		if pct and not curve then pct = pct * 100 end
 		return pct or 0, 100, cur
 	end
@@ -1103,13 +1103,15 @@ local function RC32_RawValues(unit, power, powerType)
 	return cur, mx, RC32_Secret(cur) or RC32_Secret(mx)
 end
 
+-- UnitPowerPercent(unit, powerType, usePredicted, curve): the curve is the
+-- 4th argument; given 3rd it was ignored and the mana orb read 0 (0.25 -> 0).
 -- the orb percentage: a readable number, a hidden one, or nil if refused
 local function RC32_PercentAny(unit, power)
 	local curve = CurveConstants and CurveConstants.ScaleTo100
 	local ok, pct
 	if power then
 		if not UnitPowerPercent then return nil end
-		ok, pct = pcall(UnitPowerPercent, unit, UnitPowerType and UnitPowerType(unit), curve)
+		ok, pct = pcall(UnitPowerPercent, unit, UnitPowerType and UnitPowerType(unit), false, curve)
 	else
 		if not UnitHealthPercent then return nil end
 		ok, pct = pcall(UnitHealthPercent, unit, false, curve)
@@ -2388,7 +2390,7 @@ local function RC32_SegmentsFrom(value, powerType)
 	end
 	local segs = segmentedPowerTracker and segmentedPowerTracker.numSegments or 5
 	local curve = CurveConstants and CurveConstants.ScaleTo100
-	local pct = RC32_Percent(UnitPowerPercent, "player", powerType, curve)
+	local pct = RC32_Percent(UnitPowerPercent, "player", powerType, false, curve)
 	if not pct then return 0 end
 	if not curve then pct = pct * 100 end
 	return math.floor(pct / 100 * segs + 0.5)

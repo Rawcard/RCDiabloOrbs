@@ -391,7 +391,8 @@ if SECRET_CLIENT then
 		local h, m = (u == "player" and HEALTH or 3000), (u == "player" and HEALTHMAX or 6000)
 		return pctOut(h / m, curve)
 	end
-	function UnitPowerPercent(u, t, curve)
+	-- the real signature: (unit, powerType, usePredicted, curve)
+	function UnitPowerPercent(u, t, predicted, curve)
 		return pctOut(POWER / POWERMAX, curve)
 	end
 	function AbbreviateNumbers(v) if isSecret(v) then return "1.2K" end return tostring(v) end

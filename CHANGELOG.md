@@ -1,6 +1,7 @@
 # RC Diablo Orbs 2.1.9.0
 
 - **WoW Forever and Retail:** fixed the "GetDebuffDataByIndex(): Auras cannot be accessed when secret" error spam in combat. The game now refuses to let addons read your target's debuffs during a fight; the DoT tracker shows nothing then instead of erroring, and picks up again out of combat.
+- **WoW Forever and Retail:** the mana orb's percentage showed 0. It asked the game for the percentage the wrong way, got a fraction like 0.25 back, and rounded it down. It shows the real percentage now (energy, rage and combo points too).
 
 ## RC Diablo Orbs 2.1.8.9
 
